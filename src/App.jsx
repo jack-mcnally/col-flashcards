@@ -157,6 +157,35 @@ const TYPES  = ["Dicey Illustration","Case","Principle","Statute"];
 const TOPIC_COLORS = {"Jurisdiction":"#60a5fa","Choice of Court":"#f472b6","Foreign Judgments":"#a78bfa","Choice - Technique":"#34d399","Choice - Contracts":"#f5a623","Choice - Tort":"#e94560","Choice - Property":"#06d6a0","Exclusion of Foreign Law":"#c084fc"};
 const TYPE_COLORS  = {"Dicey Illustration":"#94a3b8","Case":"#fbbf24","Principle":"#38bdf8","Statute":"#4ade80"};
 const STORAGE_SCORES_KEY = "col-scores-v1";
+const STORAGE_GIST_KEY = "col-gist-v1";
+const GIST_FILENAME = "col-flashcards-data.json";
+
+async function gistLoad(token){
+  try{
+    const r=await fetch("https://api.github.com/gists",{headers:{"Authorization":`Bearer ${token}`,"Accept":"application/vnd.github+json"}});
+    const list=await r.json();
+    const g=list.find(x=>x.files&&x.files[GIST_FILENAME]);
+    if(!g)return null;
+    const full=await fetch(`https://api.github.com/gists/${g.id}`,{headers:{"Authorization":`Bearer ${token}`}});
+    const data=await full.json();
+    const content=data.files[GIST_FILENAME]?.content;
+    return content?{id:g.id,...JSON.parse(content)}:null;
+  }catch{return null;}
+}
+
+async function gistSave(token,gistId,payload){
+  try{
+    const body={files:{[GIST_FILENAME]:{content:JSON.stringify(payload)}}};
+    if(gistId){
+      await fetch(`https://api.github.com/gists/${gistId}`,{method:"PATCH",headers:{"Authorization":`Bearer ${token}`,"Content-Type":"application/json"},body:JSON.stringify(body)});
+      return gistId;
+    }else{
+      const r=await fetch("https://api.github.com/gists",{method:"POST",headers:{"Authorization":`Bearer ${token}`,"Content-Type":"application/json"},body:JSON.stringify({...body,description:"CoL Flashcards Data",public:false})});
+      const data=await r.json();
+      return data.id||null;
+    }
+  }catch{return gistId;}
+}
 
 // ============================================================
 // SECTION 3: COMPONENTS + APP
@@ -200,6 +229,13 @@ async function gradeAnswer(question,userAnswer,correctAnswer){
 
 export default function App(){
   const [scores,setScores]=useState({});
+  const [flags,setFlags]=useState([]);
+  const [hidden,setHidden]=useState([]);
+  const [edits,setEdits]=useState({});
+  const [githubToken,setGithubToken]=useState("");
+  const [gistId,setGistId]=useState(null);
+  const [syncing,setSyncing]=useState(false);
+  const [editingCard,setEditingCard]=useState(null);
   const [loaded,setLoaded]=useState(false);
   const [view,setView]=useState("study");
   const [deck,setDeck]=useState([]);
@@ -218,26 +254,59 @@ export default function App(){
 
   const loadFromStorage=useCallback(async()=>{
     let storedScores={};
-try{const r=localStorage.getItem(STORAGE_SCORES_KEY);if(r)storedScores=JSON.parse(r);}catch(e){}
+    let storedFlags=[];
+    let storedHidden=[];
+    let storedEdits={};
+    let storedToken="";
+    let storedGistId=null;
+    try{const r=localStorage.getItem(STORAGE_SCORES_KEY);if(r)storedScores=JSON.parse(r);}catch(e){}
+    try{const r=localStorage.getItem(STORAGE_GIST_KEY);if(r){const g=JSON.parse(r);storedToken=g.token||"";storedGistId=g.gistId||null;}}catch(e){}
     setScores(storedScores);
+    setGithubToken(storedToken);
+    setGistId(storedGistId);
+    if(storedToken){
+      const g=await gistLoad(storedToken);
+      if(g){
+        storedFlags=g.flags||[];
+        storedHidden=g.hidden||[];
+        storedEdits=g.edits||{};
+        if(g.scores)storedScores={...storedScores,...g.scores};
+        setScores(storedScores);
+        setGistId(g.id);
+        try{localStorage.setItem(STORAGE_GIST_KEY,JSON.stringify({token:storedToken,gistId:g.id}));}catch(e){}
+      }
+    }
+    setFlags(storedFlags);
+    setHidden(storedHidden);
+    setEdits(storedEdits);
     setLoaded(true);
   },[]);
 
   useEffect(()=>{loadFromStorage();},[]);
 
-  useEffect(()=>{
-    if(!loaded||Object.keys(scores).length===0)return;
-try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
+  const syncToGist=useCallback(async(newScores,newFlags,newHidden,newEdits,token,id)=>{
+    if(!token)return;
+    setSyncing(true);
+    const newId=await gistSave(token,id,{scores:newScores,flags:newFlags,hidden:newHidden,edits:newEdits});
+    if(newId&&newId!==id){setGistId(newId);try{localStorage.setItem(STORAGE_GIST_KEY,JSON.stringify({token,gistId:newId}));}catch(e){}}
+    setSyncing(false);
+  },[]);
 
-  },[scores,loaded]);
+  useEffect(()=>{
+    if(!loaded)return;
+    try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
+    syncToGist(scores,flags,hidden,edits,githubToken,gistId);
+  },[scores,flags,hidden,edits,loaded]);
 
   useEffect(()=>{
     if(!loaded)return;
     const filtered=ALL_CARDS.filter(c=>{
+      if(hidden.includes(c.id))return false;
       if(filterTopic!=="All"&&!getTopics(c).includes(filterTopic))return false;
       if(filterType!=="All"&&!getTypes(c).includes(filterType))return false;
       if(filterFlag==="exclude-ai"&&isAiScenario(c))return false;
       if(filterFlag==="ai-only"&&!isAiScenario(c))return false;
+      if(studyMode==="flagged")return flags.includes(c.id);
       const sc=scores[c.id]||{correct:0,incorrect:0};
       if(studyMode==="weak")return sc.incorrect>sc.correct;
       if(studyMode==="unseen")return sc.correct===0&&sc.incorrect===0;
@@ -245,10 +314,11 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
     });
     setDeck(shuffle(filtered));
     setIdx(0);setFlipped(false);setUserAnswer("");setGradingResult(null);
-  },[filterTopic,filterType,filterFlag,studyMode,loaded]);
+  },[filterTopic,filterType,filterFlag,studyMode,hidden,flags,loaded]);
 
   const getScore=useCallback((id)=>scores[id]||{correct:0,incorrect:0},[scores]);
-  const card=deck[Math.min(idx,deck.length-1)]||null;
+  const rawCard=deck[Math.min(idx,deck.length-1)]||null;
+  const card=rawCard?{...rawCard,...(edits[rawCard.id]||{})}:null;
   const primaryTopic=card?getTopics(card)[0]:null;
   const accentColor=primaryTopic?(TOPIC_COLORS[primaryTopic]||"#a78bfa"):"#a78bfa";
   const cardScore=card?getScore(card.id):{correct:0,incorrect:0};
@@ -272,6 +342,9 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
   };
 
   const handleSelfMark=(correct)=>{updateScore(card.id,correct);next();};
+  const toggleFlag=(id)=>setFlags(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id]);
+  const hideCard=(id)=>{setHidden(h=>[...h,id]);next();};
+  const saveEdit=(id,q,a)=>{setEdits(e=>({...e,[id]:{question:q,answer:a}}));setEditingCard(null);};
 
   const totalCorrect=Object.values(scores).reduce((s,sc)=>s+sc.correct,0);
   const totalIncorrect=Object.values(scores).reduce((s,sc)=>s+sc.incorrect,0);
@@ -290,12 +363,22 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 12px",borderBottom:"1px solid #1a1a2e",background:"#0a0a14"}}>
         <div>
           <div style={{fontSize:"10px",letterSpacing:"4px",color:"#444",textTransform:"uppercase"}}>BCL Flashcards</div>
-          <div style={{fontSize:"18px",color:"#c8c8e0"}}>Conflict of Laws — Flashcards</div>
+          <div style={{fontSize:"18px",color:"#c8c8e0"}}>Conflict of Laws</div>
         </div>
-        <div style={{display:"flex",gap:"8px"}}>
-          {[["study","Study"],["stats","Stats"]].map(([v,l])=>(
-            <button key={v} onClick={()=>setView(v)} style={nb(view===v)}>{l}</button>
-          ))}
+        <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
+          {syncing&&<span style={{fontSize:"10px",color:"#444"}}>syncing…</span>}
+          {/* Study */}
+          <button onClick={()=>setView("study")} title="Study" style={{...nb(view==="study"),padding:"8px 10px"}}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </button>
+          {/* Stats */}
+          <button onClick={()=>setView("stats")} title="Stats" style={{...nb(view==="stats"),padding:"8px 10px"}}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+          </button>
+          {/* Wrench */}
+          <button onClick={()=>setView("manage")} title="Manage" style={{...nb(view==="manage"),padding:"8px 10px"}}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          </button>
         </div>
       </div>
 
@@ -333,7 +416,7 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
             <div>
               <div style={{fontSize:"10px",letterSpacing:"3px",color:"#333",textTransform:"uppercase",marginBottom:"7px"}}>Mode</div>
               <div style={{display:"flex",gap:"5px"}}>
-                {[["all","All"],["weak","Weak"],["unseen","Unseen"]].map(([m,l])=>(
+                {[["all","All"],["weak","Weak"],["unseen","Unseen"],["flagged","Flagged"]].map(([m,l])=>(
                   <button key={m} onClick={()=>setStudyMode(m)} style={mb(studyMode===m)}>{l}</button>
                 ))}
               </div>
@@ -382,6 +465,7 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid #1a1a28",paddingTop:"12px"}}>
                   <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
                     <RobotIcon filled={isAiScenario(card)} color={accentColor}/>
+                    {flags.includes(rawCard.id)&&<svg width="14" height="14" viewBox="0 0 24 24" fill="#f5a623" stroke="#f5a623" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>}
                     {card.subtopic&&<span style={{fontSize:"10px",color:"#444",letterSpacing:"1px",textTransform:"uppercase"}}>{card.subtopic}</span>}
                   </div>
                   {card.reference&&<span style={{fontSize:"11px",color:"#555",fontStyle:"italic"}}>{card.reference}</span>}
@@ -400,12 +484,25 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
             {/* Self-mark — fixed to bottom */}
             {flipped&&(
               <>
-                <div style={{height:"80px"}}/>
-                <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#0a0a14",borderTop:"1px solid #1a1a2e",padding:"12px 12px calc(12px + env(safe-area-inset-bottom))",display:"flex",gap:"8px",zIndex:100}}>
-                  <button onClick={prev} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"12px 10px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flexShrink:0}}>←</button>
-                  <button onClick={()=>handleSelfMark(false)} style={{background:"#e9456015",border:"1px solid #e9456050",color:"#e94560",padding:"12px 0",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flex:1}}>✗ Wrong</button>
-                  <button onClick={()=>handleSelfMark(true)} style={{background:"#06d6a015",border:"1px solid #06d6a050",color:"#06d6a0",padding:"12px 0",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flex:1}}>✓ Right</button>
-                  <button onClick={next} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"12px 10px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flexShrink:0}}>→</button>
+                <div style={{height:"130px"}}/>
+                <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#0a0a14",borderTop:"1px solid #1a1a2e",zIndex:100}}>
+                  <div style={{display:"flex",gap:"6px",padding:"8px 12px"}}>
+                    <button onClick={()=>toggleFlag(rawCard.id)} title="Flag" style={{background:flags.includes(rawCard.id)?"#f5a62320":"transparent",border:`1px solid ${flags.includes(rawCard.id)?"#f5a62350":"#1e1e2e"}`,color:flags.includes(rawCard.id)?"#f5a623":"#444",padding:"8px 10px",borderRadius:"8px",cursor:"pointer",flexShrink:0}}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill={flags.includes(rawCard.id)?"#f5a623":"none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                    </button>
+                    <button onClick={()=>setEditingCard(rawCard)} title="Edit" style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"8px 10px",borderRadius:"8px",cursor:"pointer",flexShrink:0}}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button onClick={()=>hideCard(rawCard.id)} title="Hide" style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"8px 10px",borderRadius:"8px",cursor:"pointer",flexShrink:0}}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    </button>
+                  </div>
+                  <div style={{display:"flex",gap:"6px",padding:"0 12px calc(12px + env(safe-area-inset-bottom))"}}>
+                    <button onClick={prev} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"12px 10px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flexShrink:0}}>←</button>
+                    <button onClick={()=>handleSelfMark(false)} style={{background:"#e9456015",border:"1px solid #e9456050",color:"#e94560",padding:"12px 0",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flex:1}}>✗ Wrong</button>
+                    <button onClick={()=>handleSelfMark(true)} style={{background:"#06d6a015",border:"1px solid #06d6a050",color:"#06d6a0",padding:"12px 0",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flex:1}}>✓ Right</button>
+                    <button onClick={next} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"12px 10px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flexShrink:0}}>→</button>
+                  </div>
                 </div>
               </>
             )}
@@ -441,10 +538,10 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
                     const pct=total>0?Math.round((correct/total)*100):0;
                     const color=colorMap[item];
                     return(
-                      <div key={item} style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"14px 18px"}}>
-                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:"8px"}}>
-                          <span style={{color,fontSize:"13px"}}>{item}</span>
-                          <span style={{color:"#555",fontSize:"12px"}}>{tc.length} cards · {pct}% correct</span>
+                      <div key={item} style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"10px 12px",minWidth:0,overflow:"hidden"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:"6px",gap:"8px"}}>
+                          <span style={{color,fontSize:"12px",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item}</span>
+                          <span style={{color:"#555",fontSize:"11px",flexShrink:0}}>{tc.length} · {pct}%</span>
                         </div>
                         <div style={{height:"3px",background:"#1e1e2e",borderRadius:"2px"}}>
                           <div style={{height:"100%",width:`${pct}%`,background:color,borderRadius:"2px",transition:"width 0.5s"}}/>
@@ -459,6 +556,96 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
           <button onClick={()=>setScores({})} style={{background:"transparent",border:"1px solid #2a2a1a",color:"#555",padding:"10px 20px",borderRadius:"8px",cursor:"pointer",fontSize:"12px"}}>Reset All Scores</button>
         </div>
       )}
+
+      {/* MANAGE */}
+      {view==="manage"&&(()=>{
+        const pendingEdits=Object.entries(edits);
+        const pendingHidden=hidden.map(id=>ALL_CARDS.find(c=>c.id===id)).filter(Boolean);
+        const flaggedCards=flags.map(id=>ALL_CARDS.find(c=>c.id===id)).filter(Boolean);
+        const pendingSummary=[
+          pendingHidden.length?`HIDDEN CARDS (${pendingHidden.length}):\n${pendingHidden.map(c=>`- [${c.number}] ${c.question.slice(0,60)}…`).join("\n")}`:null,
+          pendingEdits.length?`EDITED CARDS (${pendingEdits.length}):\n${pendingEdits.map(([id,e])=>{const orig=ALL_CARDS.find(c=>c.id===+id);return`- [${orig?.number}]\n  Q: ${e.question||"(unchanged)"}\n  A: ${e.answer||"(unchanged)"}`;}).join("\n\n")}`:null,
+        ].filter(Boolean).join("\n\n")||"No pending changes.";
+        return(
+        <div style={{flex:1,padding:"14px 12px",width:"100%",display:"flex",flexDirection:"column",gap:"14px"}}>
+          {/* GitHub Gist Sync */}
+          <div style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"14px"}}>
+            <div style={{fontSize:"11px",letterSpacing:"2px",color:"#444",textTransform:"uppercase",marginBottom:"10px"}}>GitHub Sync</div>
+            <input value={githubToken} onChange={e=>setGithubToken(e.target.value)} placeholder="Paste GitHub Personal Access Token…" type="password" style={{width:"100%",background:"#080810",border:"1px solid #2a2a3a",color:"#d0d0e8",borderRadius:"6px",padding:"10px",fontSize:"13px",fontFamily:"inherit",outline:"none",marginBottom:"8px"}}/>
+            <div style={{display:"flex",gap:"8px"}}>
+              <button onClick={async()=>{try{localStorage.setItem(STORAGE_GIST_KEY,JSON.stringify({token:githubToken,gistId}));}catch(e){}await syncToGist(scores,flags,hidden,edits,githubToken,gistId);}} style={{background:"#a78bfa20",border:"1px solid #a78bfa40",color:"#a78bfa",padding:"8px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"12px",flex:1}}>Save & Sync</button>
+              <button onClick={()=>{setGithubToken("");setGistId(null);try{localStorage.removeItem(STORAGE_GIST_KEY);}catch(e){}}} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#555",padding:"8px 12px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}}>Clear</button>
+            </div>
+            <p style={{fontSize:"11px",color:"#444",marginTop:"8px",lineHeight:1.5}}>Create a token at github.com/settings/tokens with <em>gist</em> scope only.</p>
+          </div>
+
+          {/* Flagged */}
+          {flaggedCards.length>0&&(
+          <div style={{background:"#0e0e1a",border:"1px solid #f5a62330",borderRadius:"10px",padding:"14px"}}>
+            <div style={{fontSize:"11px",letterSpacing:"2px",color:"#f5a623",textTransform:"uppercase",marginBottom:"10px"}}>Flagged for Review ({flaggedCards.length})</div>
+            <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+              {flaggedCards.map(c=>(
+                <div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"8px"}}>
+                  <span style={{fontSize:"12px",color:"#888",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>[{c.number}] {c.question.slice(0,50)}…</span>
+                  <button onClick={()=>toggleFlag(c.id)} style={{background:"transparent",border:"1px solid #2a2a3a",color:"#555",padding:"4px 8px",borderRadius:"4px",cursor:"pointer",fontSize:"11px",flexShrink:0}}>Unflag</button>
+                </div>
+              ))}
+            </div>
+          </div>
+          )}
+
+          {/* Pending Changes */}
+          <div style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"14px"}}>
+            <div style={{fontSize:"11px",letterSpacing:"2px",color:"#444",textTransform:"uppercase",marginBottom:"10px"}}>Pending Changes</div>
+            <pre style={{fontSize:"11px",color:"#666",lineHeight:1.6,whiteSpace:"pre-wrap",wordBreak:"break-word",maxHeight:"200px",overflowY:"auto",background:"#080810",borderRadius:"6px",padding:"10px",marginBottom:"8px"}}>{pendingSummary}</pre>
+            <div style={{display:"flex",gap:"8px"}}>
+              <button onClick={()=>navigator.clipboard?.writeText(pendingSummary)} style={{background:"#a78bfa20",border:"1px solid #a78bfa40",color:"#a78bfa",padding:"8px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"12px",flex:1}}>Copy to Clipboard</button>
+              <button onClick={()=>{if(confirm("Clear all edits and unhide all cards?")){{setEdits({});setHidden([])}}}} style={{background:"transparent",border:"1px solid #2a2a1a",color:"#555",padding:"8px 12px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}}>Clear</button>
+            </div>
+          </div>
+
+          {/* Hidden cards list */}
+          {pendingHidden.length>0&&(
+          <div style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"14px"}}>
+            <div style={{fontSize:"11px",letterSpacing:"2px",color:"#444",textTransform:"uppercase",marginBottom:"10px"}}>Hidden Cards ({pendingHidden.length})</div>
+            <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+              {pendingHidden.map(c=>(
+                <div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"8px"}}>
+                  <span style={{fontSize:"12px",color:"#888",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>[{c.number}] {c.question.slice(0,50)}…</span>
+                  <button onClick={()=>setHidden(h=>h.filter(x=>x!==c.id))} style={{background:"transparent",border:"1px solid #2a2a3a",color:"#555",padding:"4px 8px",borderRadius:"4px",cursor:"pointer",fontSize:"11px",flexShrink:0}}>Restore</button>
+                </div>
+              ))}
+            </div>
+          </div>
+          )}
+        </div>
+        );
+      })()}
+
+      {/* Edit Modal */}
+      {editingCard&&(()=>{
+        const current={question:edits[editingCard.id]?.question||editingCard.question,answer:edits[editingCard.id]?.answer||editingCard.answer};
+        let q=current.question,a=current.answer;
+        return(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
+          <div style={{background:"#0e0e1a",border:"1px solid #2a2a3a",borderRadius:"12px",padding:"20px",width:"100%",maxWidth:"500px",display:"flex",flexDirection:"column",gap:"12px"}}>
+            <div style={{fontSize:"11px",letterSpacing:"2px",color:"#444",textTransform:"uppercase"}}>Edit Card — {editingCard.number}</div>
+            <div>
+              <div style={{fontSize:"11px",color:"#666",marginBottom:"4px"}}>Question</div>
+              <textarea defaultValue={q} onChange={e=>{q=e.target.value}} style={{width:"100%",background:"#080810",border:"1px solid #2a2a3a",color:"#d0d0e8",borderRadius:"6px",padding:"10px",fontSize:"13px",fontFamily:"inherit",resize:"vertical",minHeight:"80px",outline:"none"}}/>
+            </div>
+            <div>
+              <div style={{fontSize:"11px",color:"#666",marginBottom:"4px"}}>Answer</div>
+              <textarea defaultValue={a} onChange={e=>{a=e.target.value}} style={{width:"100%",background:"#080810",border:"1px solid #2a2a3a",color:"#d0d0e8",borderRadius:"6px",padding:"10px",fontSize:"13px",fontFamily:"inherit",resize:"vertical",minHeight:"100px",outline:"none"}}/>
+            </div>
+            <div style={{display:"flex",gap:"8px"}}>
+              <button onClick={()=>saveEdit(editingCard.id,q,a)} style={{background:"#06d6a020",border:"1px solid #06d6a050",color:"#06d6a0",padding:"10px 0",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flex:1}}>Save Edit</button>
+              <button onClick={()=>setEditingCard(null)} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#555",padding:"10px 16px",borderRadius:"8px",cursor:"pointer",fontSize:"13px"}}>Cancel</button>
+            </div>
+          </div>
+        </div>
+        );
+      })()}
     </div>
   );
-}localStorage
+}
