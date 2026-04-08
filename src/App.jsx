@@ -212,6 +212,7 @@ export default function App(){
   const [filterType,setFilterType]=useState("All");
   const [filterFlag,setFilterFlag]=useState("all");
   const [studyMode,setStudyMode]=useState("all");
+  const [showFilters,setShowFilters]=useState(false);
   const [sessionCorrect,setSessionCorrect]=useState(0);
   const [sessionTotal,setSessionTotal]=useState(0);
 
@@ -300,25 +301,30 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
 
       {/* STUDY */}
       {view==="study"&&(
-        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"20px 16px",gap:"12px"}}>
+        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"12px 10px",gap:"10px"}}>
+          <button onClick={()=>setShowFilters(!showFilters)} style={{width:"100%",maxWidth:"700px",background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"8px",padding:"10px 16px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",color:"#666",fontSize:"12px",letterSpacing:"2px",textTransform:"uppercase"}}>
+            <span>Filters {filterTopic!=="All"||filterType!=="All"||filterFlag!=="all"||studyMode!=="all"?"(active)":""}</span>
+            <span style={{fontSize:"14px"}}>{showFilters?"▲":"▼"}</span>
+          </button>
+          {showFilters&&<>
           <div style={{width:"100%",maxWidth:"700px"}}>
             <div style={{fontSize:"10px",letterSpacing:"3px",color:"#333",textTransform:"uppercase",marginBottom:"7px"}}>Topic</div>
-            <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
+            <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
               <button onClick={()=>setFilterTopic("All")} style={fb(filterTopic==="All","#888")}>All</button>
               {TOPICS.map(t=><button key={t} onClick={()=>setFilterTopic(t)} style={fb(filterTopic===t,TOPIC_COLORS[t])}>{t}</button>)}
             </div>
           </div>
-          <div style={{width:"100%",maxWidth:"700px",display:"flex",gap:"12px",flexWrap:"wrap",alignItems:"flex-start"}}>
-            <div style={{flex:1,minWidth:"200px"}}>
+          <div style={{width:"100%",maxWidth:"700px",display:"flex",gap:"10px",flexWrap:"wrap",alignItems:"flex-start"}}>
+            <div style={{flex:1,minWidth:"150px"}}>
               <div style={{fontSize:"10px",letterSpacing:"3px",color:"#333",textTransform:"uppercase",marginBottom:"7px"}}>Type</div>
-              <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
+              <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
                 <button onClick={()=>setFilterType("All")} style={fb(filterType==="All","#888")}>All</button>
                 {TYPES.map(t=><button key={t} onClick={()=>setFilterType(t)} style={fb(filterType===t,TYPE_COLORS[t])}>{t}</button>)}
               </div>
             </div>
             <div>
               <div style={{fontSize:"10px",letterSpacing:"3px",color:"#333",textTransform:"uppercase",marginBottom:"7px"}}>AI Scenarios</div>
-              <div style={{display:"flex",gap:"6px"}}>
+              <div style={{display:"flex",gap:"5px"}}>
                 {[["all","Include"],["exclude-ai","Exclude"],["ai-only","Only"]].map(([m,l])=>(
                   <button key={m} onClick={()=>setFilterFlag(m)} style={mb(filterFlag===m)}>{l}</button>
                 ))}
@@ -326,13 +332,14 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
             </div>
             <div>
               <div style={{fontSize:"10px",letterSpacing:"3px",color:"#333",textTransform:"uppercase",marginBottom:"7px"}}>Mode</div>
-              <div style={{display:"flex",gap:"6px"}}>
+              <div style={{display:"flex",gap:"5px"}}>
                 {[["all","All"],["weak","Weak"],["unseen","Unseen"]].map(([m,l])=>(
                   <button key={m} onClick={()=>setStudyMode(m)} style={mb(studyMode===m)}>{l}</button>
                 ))}
               </div>
             </div>
           </div>
+          </>}
 
           {deck.length===0?(
             <div style={{color:"#444",fontSize:"14px",marginTop:"60px"}}>No cards match this filter.</div>
@@ -365,7 +372,7 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
             </div>
 
             {/* Card */}
-            <div style={{width:"100%",maxWidth:"700px",background:"#0e0e1a",borderRadius:"16px",padding:"32px 32px 24px",boxShadow:"0 8px 32px rgba(0,0,0,0.5)",minHeight:"180px",border:`1px solid ${accentColor}80`}}>
+            <div style={{width:"100%",maxWidth:"700px",background:"#0e0e1a",borderRadius:"12px",padding:"20px 16px 16px",boxShadow:"0 8px 32px rgba(0,0,0,0.5)",minHeight:"120px",border:`1px solid ${accentColor}80`}}>
               <p style={{fontSize:"15px",lineHeight:1.8,color:"#d0d0e8",margin:"0 0 20px"}}>{flipped?card.answer:card.question}</p>
               {flipped&&(<>
                 <div style={{borderTop:`1px solid ${accentColor}30`,paddingTop:"16px",marginBottom:"16px"}}>
