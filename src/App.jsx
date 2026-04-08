@@ -415,14 +415,17 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
               </div>
             )}
 
-            {/* Self-mark */}
+            {/* Self-mark — fixed to bottom */}
             {flipped&&(
-              <div style={{display:"flex",gap:"10px",flexWrap:"wrap",justifyContent:"center"}}>
-                <button onClick={prev} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"10px 18px",borderRadius:"8px",cursor:"pointer",fontSize:"13px"}}>← Back</button>
-                <button onClick={()=>handleSelfMark(false)} style={{background:"#e9456015",border:"1px solid #e9456050",color:"#e94560",padding:"10px 22px",borderRadius:"8px",cursor:"pointer",fontSize:"13px"}}>✗ Got it Wrong</button>
-                <button onClick={()=>handleSelfMark(true)} style={{background:"#06d6a015",border:"1px solid #06d6a050",color:"#06d6a0",padding:"10px 22px",borderRadius:"8px",cursor:"pointer",fontSize:"13px"}}>✓ Got it Right</button>
-                <button onClick={next} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"10px 18px",borderRadius:"8px",cursor:"pointer",fontSize:"13px"}}>Next →</button>
-              </div>
+              <>
+                <div style={{height:"80px"}}/>
+                <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#0a0a14",borderTop:"1px solid #1a1a2e",padding:"12px 12px calc(12px + env(safe-area-inset-bottom))",display:"flex",gap:"8px",zIndex:100}}>
+                  <button onClick={prev} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"12px 10px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flexShrink:0}}>←</button>
+                  <button onClick={()=>handleSelfMark(false)} style={{background:"#e9456015",border:"1px solid #e9456050",color:"#e94560",padding:"12px 0",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flex:1}}>✗ Wrong</button>
+                  <button onClick={()=>handleSelfMark(true)} style={{background:"#06d6a015",border:"1px solid #06d6a050",color:"#06d6a0",padding:"12px 0",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flex:1}}>✓ Right</button>
+                  <button onClick={next} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"12px 10px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flexShrink:0}}>→</button>
+                </div>
+              </>
             )}
           </>)}
         </div>
