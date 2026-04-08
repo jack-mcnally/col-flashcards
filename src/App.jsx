@@ -295,6 +295,12 @@ export default function App(){
     setSyncing(false);
   },[]);
 
+  // Auto-save token to localStorage whenever it changes
+  useEffect(()=>{
+    if(!loaded)return;
+    try{localStorage.setItem(STORAGE_GIST_KEY,JSON.stringify({token:githubToken,gistId}));}catch(e){}
+  },[githubToken,gistId,loaded]);
+
   useEffect(()=>{
     if(!loaded)return;
     try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
@@ -347,13 +353,7 @@ export default function App(){
 
   const handleSelfMark=(correct)=>{updateScore(card.id,correct);next();};
   const toggleFlag=(id)=>setFlags(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id]);
-  const toggleHide=(id)=>{
-    setHidden(h=>{
-      if(h.includes(id))return h.filter(x=>x!==id);
-      setDeck(d=>d.filter(c=>c.id!==id));
-      return [...h,id];
-    });
-  };
+  const toggleHide=(id)=>setHidden(h=>h.includes(id)?h.filter(x=>x!==id):[...h,id]);
   const saveEdit=(id,q,a)=>{setEdits(e=>({...e,[id]:{question:q,answer:a}}));setEditingCard(null);};
 
   const totalCorrect=Object.values(scores).reduce((s,sc)=>s+sc.correct,0);
@@ -630,13 +630,13 @@ export default function App(){
 
           {/* GitHub Gist Sync */}
           <div style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"14px"}}>
-            <div style={{fontSize:"11px",letterSpacing:"2px",color:"#444",textTransform:"uppercase",marginBottom:"10px"}}>GitHub Sync</div>
+            <div style={{fontSize:"11px",letterSpacing:"2px",color:"#444",textTransform:"uppercase",marginBottom:"10px"}}>GitHub Sync {githubToken&&<span style={{color:"#06d6a0",letterSpacing:"normal",textTransform:"none",fontSize:"10px",marginLeft:"6px"}}>● connected</span>}</div>
             <input value={githubToken} onChange={e=>setGithubToken(e.target.value)} placeholder="Paste GitHub Personal Access Token…" type="password" style={{width:"100%",background:"#080810",border:"1px solid #2a2a3a",color:"#d0d0e8",borderRadius:"6px",padding:"10px",fontSize:"13px",fontFamily:"inherit",outline:"none",marginBottom:"8px"}}/>
             <div style={{display:"flex",gap:"8px"}}>
-              <button onClick={async()=>{try{localStorage.setItem(STORAGE_GIST_KEY,JSON.stringify({token:githubToken,gistId}));}catch(e){}await syncToGist(scores,flags,hidden,edits,githubToken,gistId);}} style={{background:"#a78bfa20",border:"1px solid #a78bfa40",color:"#a78bfa",padding:"8px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"12px",flex:1}}>Save & Sync</button>
-              <button onClick={()=>{setGithubToken("");setGistId(null);try{localStorage.removeItem(STORAGE_GIST_KEY);}catch(e){}}} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#555",padding:"8px 12px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}}>Clear</button>
+              <button onClick={async()=>syncToGist(scores,flags,hidden,edits,githubToken,gistId)} style={{background:"#a78bfa20",border:"1px solid #a78bfa40",color:"#a78bfa",padding:"8px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"12px",flex:1}}>Force Sync Now</button>
+              <button onClick={()=>{setGithubToken("");setGistId(null);try{localStorage.removeItem(STORAGE_GIST_KEY);}catch(e){}}} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#555",padding:"8px 12px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}}>Disconnect</button>
             </div>
-            <p style={{fontSize:"11px",color:"#444",marginTop:"8px",lineHeight:1.5}}>Create a token at github.com/settings/tokens with <em>gist</em> scope only.</p>
+            <p style={{fontSize:"11px",color:"#444",marginTop:"8px",lineHeight:1.5}}>Token is saved automatically once pasted. Syncs happen automatically on every score, flag, or edit. Create a token at github.com/settings/tokens with <em>gist</em> scope only.</p>
           </div>
 
           {/* Flagged */}
