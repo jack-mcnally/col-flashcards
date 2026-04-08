@@ -289,7 +289,7 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
       {/* Nav */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 12px",borderBottom:"1px solid #1a1a2e",background:"#0a0a14"}}>
         <div>
-          <div style={{fontSize:"10px",letterSpacing:"4px",color:"#444",textTransform:"uppercase"}}>Private International Law</div>
+          <div style={{fontSize:"10px",letterSpacing:"4px",color:"#444",textTransform:"uppercase"}}>BCL Flashcards</div>
           <div style={{fontSize:"18px",color:"#c8c8e0"}}>Conflict of Laws — Flashcards</div>
         </div>
         <div style={{display:"flex",gap:"8px"}}>
@@ -389,29 +389,11 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
               </>)}
             </div>
 
-            {/* Answer input */}
+            {/* Reveal button */}
             {!flipped&&(
-              <div style={{alignSelf:"stretch",display:"flex",flexDirection:"column",gap:"10px"}}>
-                <textarea value={userAnswer} onChange={e=>setUserAnswer(e.target.value)} placeholder="Type your answer, then grade with AI or reveal…" style={{background:"#0e0e1a",border:"1px solid #2a2a3a",color:"#d0d0e8",borderRadius:"8px",padding:"14px",fontSize:"14px",fontFamily:"inherit",resize:"vertical",minHeight:"90px",outline:"none",lineHeight:1.6,width:"100%",boxSizing:"border-box"}}/>
-                <div style={{display:"flex",gap:"10px",justifyContent:"space-between"}}>
-                  <button onClick={next} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"10px 20px",borderRadius:"8px",cursor:"pointer",fontSize:"13px"}}>Skip →</button>
-                  <div style={{display:"flex",gap:"10px"}}>
-                    <button onClick={()=>setFlipped(true)} style={{background:"transparent",border:"1px solid #2a2a3a",color:"#666",padding:"10px 20px",borderRadius:"8px",cursor:"pointer",fontSize:"13px"}}>Reveal Answer</button>
-                    <button onClick={handleGrade} disabled={grading||!userAnswer.trim()} style={{background:grading?"#1e1e3a":accentColor,border:"none",color:grading?"#555":"#000",padding:"10px 24px",borderRadius:"8px",cursor:grading?"not-allowed":"pointer",fontSize:"13px",fontWeight:"bold",letterSpacing:"1px"}}>{grading?"Grading…":"Grade with AI"}</button>
-                  </div>
-                </div>
-                {gradingResult&&(
-                  <div style={{background:gradingResult.result==="correct"?"#06d6a020":gradingResult.result==="partial"?"#f5a62320":"#e9456020",border:`1px solid ${gradingResult.result==="correct"?"#06d6a050":gradingResult.result==="partial"?"#f5a62350":"#e9456050"}`,borderRadius:"8px",padding:"14px"}}>
-                    <div style={{fontSize:"12px",letterSpacing:"2px",textTransform:"uppercase",marginBottom:"6px",color:gradingResult.result==="correct"?"#06d6a0":gradingResult.result==="partial"?"#f5a623":"#e94560"}}>
-                      {gradingResult.result==="correct"?"✓ Correct":gradingResult.result==="partial"?"◑ Partial":"✗ Incorrect"}
-                    </div>
-                    <p style={{margin:0,fontSize:"13px",color:"#a0a0c0",lineHeight:1.6}}>{gradingResult.feedback}</p>
-                    <div style={{display:"flex",gap:"10px",marginTop:"12px"}}>
-                      <button onClick={()=>setFlipped(true)} style={{background:"transparent",border:"1px solid #2a2a3a",color:"#666",padding:"7px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}}>See Full Answer</button>
-                      <button onClick={next} style={{background:accentColor+"20",border:`1px solid ${accentColor}40`,color:accentColor,padding:"7px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}}>Next →</button>
-                    </div>
-                  </div>
-                )}
+              <div style={{alignSelf:"stretch",display:"flex",gap:"8px"}}>
+                <button onClick={next} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"12px 16px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flexShrink:0}}>Skip →</button>
+                <button onClick={()=>setFlipped(true)} style={{background:accentColor,border:"none",color:"#000",padding:"12px 0",borderRadius:"8px",cursor:"pointer",fontSize:"13px",fontWeight:"bold",flex:1}}>Reveal Answer</button>
               </div>
             )}
 
@@ -433,13 +415,13 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
 
       {/* STATS */}
       {view==="stats"&&(
-        <div style={{flex:1,padding:"20px 12px",maxWidth:"100%",margin:"0 auto",width:"100%"}}>
-          <h2 style={{color:"#c8c8e0",fontWeight:400,marginBottom:"28px",fontSize:"20px"}}>Your Performance</h2>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"14px",marginBottom:"32px"}}>
+        <div style={{flex:1,padding:"14px 12px",maxWidth:"100%",margin:"0 auto",width:"100%"}}>
+          <h2 style={{color:"#c8c8e0",fontWeight:400,marginBottom:"14px",fontSize:"18px"}}>Your Performance</h2>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"8px",marginBottom:"16px"}}>
             {[["Total Cards",ALL_CARDS.length,"#a0a0d0"],["Correct",totalCorrect,"#06d6a0"],["Incorrect",totalIncorrect,"#e94560"]].map(([l,v,c])=>(
-              <div key={l} style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"20px",textAlign:"center"}}>
-                <div style={{fontSize:"28px",color:c}}>{v}</div>
-                <div style={{fontSize:"11px",color:"#444",letterSpacing:"2px",textTransform:"uppercase",marginTop:"4px"}}>{l}</div>
+              <div key={l} style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"12px 8px",textAlign:"center"}}>
+                <div style={{fontSize:"22px",color:c}}>{v}</div>
+                <div style={{fontSize:"10px",color:"#444",letterSpacing:"1px",textTransform:"uppercase",marginTop:"4px"}}>{l}</div>
               </div>
             ))}
           </div>
