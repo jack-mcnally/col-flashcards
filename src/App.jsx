@@ -484,39 +484,39 @@ export default function App(){
             </div>
 
             {/* Reveal button */}
-            {!flipped&&(
-              <div style={{alignSelf:"stretch",display:"flex",gap:"8px"}}>
-                <button onClick={next} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"12px 16px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flexShrink:0}}>Skip →</button>
-                <button onClick={()=>setFlipped(true)} style={{background:accentColor,border:"none",color:"#000",padding:"12px 0",borderRadius:"8px",cursor:"pointer",fontSize:"13px",fontWeight:"bold",flex:1}}>Reveal Answer</button>
-              </div>
-            )}
-
-            {/* Self-mark — fixed to bottom */}
-            {flipped&&(
-              <>
-                <div style={{height:"130px"}}/>
-                <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#0a0a14",borderTop:"1px solid #1a1a2e",zIndex:100}}>
-                  <div style={{display:"flex",gap:"6px",padding:"8px 12px",alignItems:"center"}}>
-                    <button onClick={()=>toggleFlag(rawCard.id)} title="Flag" style={{background:flags.includes(rawCard.id)?"#f5a62320":"transparent",border:`1px solid ${flags.includes(rawCard.id)?"#f5a62350":"#1e1e2e"}`,color:flags.includes(rawCard.id)?"#f5a623":"#444",padding:"8px 10px",borderRadius:"8px",cursor:"pointer",flexShrink:0}}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill={flags.includes(rawCard.id)?"#f5a623":"none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-                    </button>
-                    <button onClick={()=>setEditingCard(rawCard)} title="Edit" style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"8px 10px",borderRadius:"8px",cursor:"pointer",flexShrink:0}}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>
-                    <button onClick={()=>toggleHide(rawCard.id)} title="Hide" style={{background:hidden.includes(rawCard.id)?"#88888820":"transparent",border:`1px solid ${hidden.includes(rawCard.id)?"#88888850":"#1e1e2e"}`,color:hidden.includes(rawCard.id)?"#aaa":"#444",padding:"8px 10px",borderRadius:"8px",cursor:"pointer",flexShrink:0}}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                    </button>
-                    <span style={{marginLeft:"auto",fontSize:"11px",color:"#333",letterSpacing:"1px"}}>Card {rawCard.id}</span>
-                  </div>
-                  <div style={{display:"flex",gap:"6px",padding:"0 12px calc(12px + env(safe-area-inset-bottom))"}}>
+            {/* Fixed bottom bar — always visible */}
+            <div style={{height:flipped?"130px":"70px"}}/>
+            <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#0a0a14",borderTop:"1px solid #1a1a2e",zIndex:100}}>
+              {flipped&&(
+                <div style={{display:"flex",gap:"6px",padding:"8px 12px",alignItems:"center"}}>
+                  <button onClick={()=>toggleFlag(rawCard.id)} title="Flag" style={{background:flags.includes(rawCard.id)?"#f5a62320":"transparent",border:`1px solid ${flags.includes(rawCard.id)?"#f5a62350":"#1e1e2e"}`,color:flags.includes(rawCard.id)?"#f5a623":"#444",padding:"8px 10px",borderRadius:"8px",cursor:"pointer",flexShrink:0}}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill={flags.includes(rawCard.id)?"#f5a623":"none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                  </button>
+                  <button onClick={()=>setEditingCard(rawCard)} title="Edit" style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"8px 10px",borderRadius:"8px",cursor:"pointer",flexShrink:0}}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button onClick={()=>toggleHide(rawCard.id)} title="Hide" style={{background:hidden.includes(rawCard.id)?"#88888820":"transparent",border:`1px solid ${hidden.includes(rawCard.id)?"#88888850":"#1e1e2e"}`,color:hidden.includes(rawCard.id)?"#aaa":"#444",padding:"8px 10px",borderRadius:"8px",cursor:"pointer",flexShrink:0}}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  </button>
+                  <span style={{marginLeft:"auto",fontSize:"11px",color:"#333",letterSpacing:"1px"}}>Card {rawCard.id}</span>
+                </div>
+              )}
+              <div style={{display:"flex",gap:"6px",padding:flipped?"0 12px calc(12px + env(safe-area-inset-bottom))":"8px 12px calc(8px + env(safe-area-inset-bottom))"}}>
+                {flipped?(
+                  <>
                     <button onClick={prev} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"12px 10px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flexShrink:0}}>←</button>
                     <button onClick={()=>handleSelfMark(false)} style={{background:"#e9456015",border:"1px solid #e9456050",color:"#e94560",padding:"12px 0",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flex:1}}>✗ Wrong</button>
                     <button onClick={()=>handleSelfMark(true)} style={{background:"#06d6a015",border:"1px solid #06d6a050",color:"#06d6a0",padding:"12px 0",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flex:1}}>✓ Right</button>
                     <button onClick={next} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"12px 10px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flexShrink:0}}>→</button>
-                  </div>
-                </div>
-              </>
-            )}
+                  </>
+                ):(
+                  <>
+                    <button onClick={next} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"12px 16px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flexShrink:0}}>Skip →</button>
+                    <button onClick={()=>setFlipped(true)} style={{background:accentColor,border:"none",color:"#000",padding:"12px 0",borderRadius:"8px",cursor:"pointer",fontSize:"13px",fontWeight:"bold",flex:1}}>Reveal Answer</button>
+                  </>
+                )}
+              </div>
+            </div>
           </>)}
         </div>
       )}
