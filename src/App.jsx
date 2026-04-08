@@ -284,6 +284,7 @@ export default function App(){
   useEffect(()=>{loadFromStorage();},[]);
 
   const syncToGist=useCallback(async(newScores,newFlags,newHidden,newEdits,id)=>{
+    if(!GIST_TOKEN)return;
     setSyncing(true);
     const newId=await gistSave(GIST_TOKEN,id,{scores:newScores,flags:newFlags,hidden:newHidden,edits:newEdits});
     if(newId&&newId!==id){setGistId(newId);try{localStorage.setItem(STORAGE_GIST_KEY,JSON.stringify({gistId:newId}));}catch(e){}}
