@@ -251,6 +251,7 @@ export default function App(){
   const [showFilters,setShowFilters]=useState(false);
   const [sessionCorrect,setSessionCorrect]=useState(0);
   const [sessionTotal,setSessionTotal]=useState(0);
+  const [showPendingCopyModal,setShowPendingCopyModal]=useState(false);
 
   const loadFromStorage=useCallback(async()=>{
     let storedScores={};
@@ -343,11 +344,18 @@ export default function App(){
 
   const handleSelfMark=(correct)=>{updateScore(card.id,correct);next();};
   const toggleFlag=(id)=>setFlags(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id]);
-  const hideCard=(id)=>{setHidden(h=>[...h,id]);next();};
+  const hideCard=(id)=>setHidden(h=>[...h,id]);
   const saveEdit=(id,q,a)=>{setEdits(e=>({...e,[id]:{question:q,answer:a}}));setEditingCard(null);};
 
   const totalCorrect=Object.values(scores).reduce((s,sc)=>s+sc.correct,0);
   const totalIncorrect=Object.values(scores).reduce((s,sc)=>s+sc.incorrect,0);
+
+  const pendingEditsEntries=Object.entries(edits);
+  const pendingHiddenCards=hidden.map(id=>ALL_CARDS.find(c=>c.id===id)).filter(Boolean);
+  const pendingSummary=[
+    pendingHiddenCards.length?`HIDDEN CARDS (${pendingHiddenCards.length}):\n${pendingHiddenCards.map(c=>`- Card ${c.id} [${c.number}] ${c.question.slice(0,60)}…`).join("\n")}`:null,
+    pendingEditsEntries.length?`EDITED CARDS (${pendingEditsEntries.length}):\n${pendingEditsEntries.map(([id,e])=>{const orig=ALL_CARDS.find(c=>c.id===+id);return`- Card ${id} [${orig?.number}]\n  Q: ${e.question||"(unchanged)"}\n  A: ${e.answer||"(unchanged)"}`;}).join("\n\n")}`:null,
+  ].filter(Boolean).join("\n\n")||"No pending changes.";
 
   const nb=(a)=>({background:a?"#1e1e3a":"transparent",border:`1px solid ${a?"#3a3a5a":"#1e1e2e"}`,color:a?"#a0a0d0":"#555",padding:"7px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"12px",letterSpacing:"2px",textTransform:"uppercase"});
   const fb=(a,c)=>({background:a?c+"22":"transparent",border:`1px solid ${a?c:"#2a2a3a"}`,color:a?c:"#555",padding:"4px 11px",borderRadius:"4px",cursor:"pointer",fontSize:"11px",whiteSpace:"nowrap"});
@@ -486,16 +494,17 @@ export default function App(){
               <>
                 <div style={{height:"130px"}}/>
                 <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#0a0a14",borderTop:"1px solid #1a1a2e",zIndex:100}}>
-                  <div style={{display:"flex",gap:"6px",padding:"8px 12px"}}>
+                  <div style={{display:"flex",gap:"6px",padding:"8px 12px",alignItems:"center"}}>
                     <button onClick={()=>toggleFlag(rawCard.id)} title="Flag" style={{background:flags.includes(rawCard.id)?"#f5a62320":"transparent",border:`1px solid ${flags.includes(rawCard.id)?"#f5a62350":"#1e1e2e"}`,color:flags.includes(rawCard.id)?"#f5a623":"#444",padding:"8px 10px",borderRadius:"8px",cursor:"pointer",flexShrink:0}}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill={flags.includes(rawCard.id)?"#f5a623":"none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
                     </button>
                     <button onClick={()=>setEditingCard(rawCard)} title="Edit" style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"8px 10px",borderRadius:"8px",cursor:"pointer",flexShrink:0}}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
-                    <button onClick={()=>hideCard(rawCard.id)} title="Hide" style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"8px 10px",borderRadius:"8px",cursor:"pointer",flexShrink:0}}>
+                    <button onClick={()=>hideCard(rawCard.id)} title="Hide" style={{background:hidden.includes(rawCard.id)?"#44444420":"transparent",border:`1px solid ${hidden.includes(rawCard.id)?"#44444450":"#1e1e2e"}`,color:hidden.includes(rawCard.id)?"#888":"#444",padding:"8px 10px",borderRadius:"8px",cursor:"pointer",flexShrink:0}}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                     </button>
+                    <span style={{marginLeft:"auto",fontSize:"11px",color:"#333",letterSpacing:"1px"}}>Card {rawCard.id}</span>
                   </div>
                   <div style={{display:"flex",gap:"6px",padding:"0 12px calc(12px + env(safe-area-inset-bottom))"}}>
                     <button onClick={prev} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"12px 10px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flexShrink:0}}>←</button>
@@ -512,7 +521,7 @@ export default function App(){
 
       {/* STATS */}
       {view==="stats"&&(
-        <div style={{flex:1,padding:"14px 12px",maxWidth:"100%",margin:"0 auto",width:"100%"}}>
+        <div style={{flex:1,padding:"14px 12px",maxWidth:"100%",margin:"0 auto",width:"100%",overflowY:"auto"}}>
           <h2 style={{color:"#c8c8e0",fontWeight:400,marginBottom:"14px",fontSize:"18px"}}>Your Performance</h2>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"8px",marginBottom:"16px"}}>
             {[["Total Cards",ALL_CARDS.length,"#a0a0d0"],["Correct",totalCorrect,"#06d6a0"],["Incorrect",totalIncorrect,"#e94560"]].map(([l,v,c])=>(
@@ -559,15 +568,11 @@ export default function App(){
 
       {/* MANAGE */}
       {view==="manage"&&(()=>{
-        const pendingEdits=Object.entries(edits);
-        const pendingHidden=hidden.map(id=>ALL_CARDS.find(c=>c.id===id)).filter(Boolean);
+        const pendingEdits=pendingEditsEntries;
+        const pendingHidden=pendingHiddenCards;
         const flaggedCards=flags.map(id=>ALL_CARDS.find(c=>c.id===id)).filter(Boolean);
-        const pendingSummary=[
-          pendingHidden.length?`HIDDEN CARDS (${pendingHidden.length}):\n${pendingHidden.map(c=>`- [${c.number}] ${c.question.slice(0,60)}…`).join("\n")}`:null,
-          pendingEdits.length?`EDITED CARDS (${pendingEdits.length}):\n${pendingEdits.map(([id,e])=>{const orig=ALL_CARDS.find(c=>c.id===+id);return`- [${orig?.number}]\n  Q: ${e.question||"(unchanged)"}\n  A: ${e.answer||"(unchanged)"}`;}).join("\n\n")}`:null,
-        ].filter(Boolean).join("\n\n")||"No pending changes.";
         return(
-        <div style={{flex:1,padding:"14px 12px",width:"100%",display:"flex",flexDirection:"column",gap:"14px"}}>
+        <div style={{flex:1,padding:"14px 12px",width:"100%",display:"flex",flexDirection:"column",gap:"14px",overflowY:"auto"}}>
           {/* GitHub Gist Sync */}
           <div style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"14px"}}>
             <div style={{fontSize:"11px",letterSpacing:"2px",color:"#444",textTransform:"uppercase",marginBottom:"10px"}}>GitHub Sync</div>
@@ -586,7 +591,7 @@ export default function App(){
             <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
               {flaggedCards.map(c=>(
                 <div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"8px"}}>
-                  <span style={{fontSize:"12px",color:"#888",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>[{c.number}] {c.question.slice(0,50)}…</span>
+                  <span style={{fontSize:"12px",color:"#888",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>Card {c.id} — {c.question.slice(0,50)}…</span>
                   <button onClick={()=>toggleFlag(c.id)} style={{background:"transparent",border:"1px solid #2a2a3a",color:"#555",padding:"4px 8px",borderRadius:"4px",cursor:"pointer",fontSize:"11px",flexShrink:0}}>Unflag</button>
                 </div>
               ))}
@@ -596,12 +601,41 @@ export default function App(){
 
           {/* Pending Changes */}
           <div style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"14px"}}>
-            <div style={{fontSize:"11px",letterSpacing:"2px",color:"#444",textTransform:"uppercase",marginBottom:"10px"}}>Pending Changes</div>
-            <pre style={{fontSize:"11px",color:"#666",lineHeight:1.6,whiteSpace:"pre-wrap",wordBreak:"break-word",maxHeight:"200px",overflowY:"auto",background:"#080810",borderRadius:"6px",padding:"10px",marginBottom:"8px"}}>{pendingSummary}</pre>
-            <div style={{display:"flex",gap:"8px"}}>
-              <button onClick={()=>navigator.clipboard?.writeText(pendingSummary)} style={{background:"#a78bfa20",border:"1px solid #a78bfa40",color:"#a78bfa",padding:"8px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"12px",flex:1}}>Copy to Clipboard</button>
-              <button onClick={()=>{if(confirm("Clear all edits and unhide all cards?")){{setEdits({});setHidden([])}}}} style={{background:"transparent",border:"1px solid #2a2a1a",color:"#555",padding:"8px 12px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}}>Clear</button>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px",gap:"8px"}}>
+              <div style={{fontSize:"11px",letterSpacing:"2px",color:"#444",textTransform:"uppercase"}}>Edited Cards ({pendingEdits.length})</div>
+              <button onClick={()=>setShowPendingCopyModal(true)} style={{background:"#a78bfa20",border:"1px solid #a78bfa40",color:"#a78bfa",padding:"5px 12px",borderRadius:"6px",cursor:"pointer",fontSize:"11px",flexShrink:0}}>Copy Pending Changes</button>
             </div>
+            {pendingEdits.length===0
+              ? <p style={{fontSize:"12px",color:"#444"}}>No edited cards.</p>
+              : <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
+                  {pendingEdits.map(([id,e])=>{
+                    const orig=ALL_CARDS.find(c=>c.id===+id);
+                    if(!orig)return null;
+                    return(
+                      <div key={id} style={{background:"#080810",borderRadius:"8px",padding:"10px",border:"1px solid #2a2a3a"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px",gap:"8px"}}>
+                          <span style={{fontSize:"11px",color:"#a0a0d0",letterSpacing:"1px"}}>Card {id} — {orig.number}</span>
+                          <button onClick={()=>setEdits(ev=>{const n={...ev};delete n[+id];return n;})} style={{background:"transparent",border:"1px solid #2a2a3a",color:"#e94560",padding:"3px 8px",borderRadius:"4px",cursor:"pointer",fontSize:"11px",flexShrink:0}}>Restore Original</button>
+                        </div>
+                        {e.question&&(
+                          <div style={{marginBottom:"6px"}}>
+                            <div style={{fontSize:"10px",color:"#555",letterSpacing:"1px",textTransform:"uppercase",marginBottom:"3px"}}>Question</div>
+                            <div style={{fontSize:"11px",color:"#555",fontStyle:"italic",marginBottom:"2px",wordBreak:"break-word"}}>{orig.question.slice(0,100)}{orig.question.length>100?"…":""}</div>
+                            <div style={{fontSize:"12px",color:"#c8c8e0",wordBreak:"break-word"}}>→ {e.question.slice(0,100)}{e.question.length>100?"…":""}</div>
+                          </div>
+                        )}
+                        {e.answer&&(
+                          <div>
+                            <div style={{fontSize:"10px",color:"#555",letterSpacing:"1px",textTransform:"uppercase",marginBottom:"3px"}}>Answer</div>
+                            <div style={{fontSize:"11px",color:"#555",fontStyle:"italic",marginBottom:"2px",wordBreak:"break-word"}}>{orig.answer.slice(0,100)}{orig.answer.length>100?"…":""}</div>
+                            <div style={{fontSize:"12px",color:"#c8c8e0",wordBreak:"break-word"}}>→ {e.answer.slice(0,100)}{e.answer.length>100?"…":""}</div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+            }
           </div>
 
           {/* Hidden cards list */}
@@ -611,7 +645,7 @@ export default function App(){
             <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
               {pendingHidden.map(c=>(
                 <div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"8px"}}>
-                  <span style={{fontSize:"12px",color:"#888",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>[{c.number}] {c.question.slice(0,50)}…</span>
+                  <span style={{fontSize:"12px",color:"#888",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>Card {c.id} — {c.question.slice(0,50)}…</span>
                   <button onClick={()=>setHidden(h=>h.filter(x=>x!==c.id))} style={{background:"transparent",border:"1px solid #2a2a3a",color:"#555",padding:"4px 8px",borderRadius:"4px",cursor:"pointer",fontSize:"11px",flexShrink:0}}>Restore</button>
                 </div>
               ))}
@@ -646,6 +680,20 @@ export default function App(){
         </div>
         );
       })()}
+
+      {/* Copy Pending Changes Modal */}
+      {showPendingCopyModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
+          <div style={{background:"#0e0e1a",border:"1px solid #2a2a3a",borderRadius:"12px",padding:"20px",width:"100%",maxWidth:"500px",display:"flex",flexDirection:"column",gap:"12px"}}>
+            <div style={{fontSize:"11px",letterSpacing:"2px",color:"#444",textTransform:"uppercase"}}>Pending Changes — Copy to Clipboard</div>
+            <textarea readOnly value={pendingSummary} style={{width:"100%",background:"#080810",border:"1px solid #2a2a3a",color:"#a0a0c0",borderRadius:"6px",padding:"10px",fontSize:"12px",fontFamily:"monospace",resize:"vertical",minHeight:"180px",outline:"none",lineHeight:1.6}}/>
+            <div style={{display:"flex",gap:"8px"}}>
+              <button onClick={()=>navigator.clipboard?.writeText(pendingSummary)} style={{background:"#a78bfa20",border:"1px solid #a78bfa40",color:"#a78bfa",padding:"10px 0",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flex:1}}>Copy to Clipboard</button>
+              <button onClick={()=>setShowPendingCopyModal(false)} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#555",padding:"10px 16px",borderRadius:"8px",cursor:"pointer",fontSize:"13px"}}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
