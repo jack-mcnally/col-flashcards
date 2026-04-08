@@ -287,7 +287,7 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
   return(
     <div style={{minHeight:"100vh",background:"#080810",fontFamily:"'Palatino Linotype',Palatino,serif",color:"#e8e8f0",display:"flex",flexDirection:"column"}}>
       {/* Nav */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"16px 24px",borderBottom:"1px solid #1a1a2e",background:"#0a0a14"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 12px",borderBottom:"1px solid #1a1a2e",background:"#0a0a14"}}>
         <div>
           <div style={{fontSize:"10px",letterSpacing:"4px",color:"#444",textTransform:"uppercase"}}>Private International Law</div>
           <div style={{fontSize:"18px",color:"#c8c8e0"}}>Conflict of Laws — Flashcards</div>
@@ -301,20 +301,20 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
 
       {/* STUDY */}
       {view==="study"&&(
-        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"12px 10px",gap:"10px"}}>
-          <button onClick={()=>setShowFilters(!showFilters)} style={{width:"100%",maxWidth:"700px",background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"8px",padding:"10px 16px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",color:"#666",fontSize:"12px",letterSpacing:"2px",textTransform:"uppercase"}}>
+        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"10px 12px",gap:"10px"}}>
+          <button onClick={()=>setShowFilters(!showFilters)} style={{alignSelf:"stretch",background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"8px",padding:"10px 16px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",color:"#666",fontSize:"12px",letterSpacing:"2px",textTransform:"uppercase"}}>
             <span>Filters {filterTopic!=="All"||filterType!=="All"||filterFlag!=="all"||studyMode!=="all"?"(active)":""}</span>
             <span style={{fontSize:"14px"}}>{showFilters?"▲":"▼"}</span>
           </button>
           {showFilters&&<>
-          <div style={{width:"100%",maxWidth:"700px"}}>
+          <div style={{alignSelf:"stretch"}}>
             <div style={{fontSize:"10px",letterSpacing:"3px",color:"#333",textTransform:"uppercase",marginBottom:"7px"}}>Topic</div>
             <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
               <button onClick={()=>setFilterTopic("All")} style={fb(filterTopic==="All","#888")}>All</button>
               {TOPICS.map(t=><button key={t} onClick={()=>setFilterTopic(t)} style={fb(filterTopic===t,TOPIC_COLORS[t])}>{t}</button>)}
             </div>
           </div>
-          <div style={{width:"100%",maxWidth:"700px",display:"flex",gap:"10px",flexWrap:"wrap",alignItems:"flex-start"}}>
+          <div style={{alignSelf:"stretch",display:"flex",gap:"10px",flexWrap:"wrap",alignItems:"flex-start"}}>
             <div style={{flex:1,minWidth:"150px"}}>
               <div style={{fontSize:"10px",letterSpacing:"3px",color:"#333",textTransform:"uppercase",marginBottom:"7px"}}>Type</div>
               <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
@@ -345,7 +345,7 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
             <div style={{color:"#444",fontSize:"14px",marginTop:"60px"}}>No cards match this filter.</div>
           ):card&&(<>
             {/* Progress panel */}
-            <div style={{width:"100%",maxWidth:"700px",background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"12px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px",flexWrap:"wrap"}}>
+            <div style={{alignSelf:"stretch",background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px",flexWrap:"wrap"}}>
               <div style={{display:"flex",flexDirection:"column",alignItems:"center",minWidth:"48px"}}>
                 <span style={{fontSize:"18px",color:"#c8c8e0",lineHeight:1}}>{Math.min(idx,deck.length-1)+1}<span style={{fontSize:"13px",color:"#444"}}>/{deck.length}</span></span>
                 <span style={{fontSize:"9px",color:"#333",letterSpacing:"2px",textTransform:"uppercase",marginTop:"2px"}}>card</span>
@@ -372,7 +372,7 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
             </div>
 
             {/* Card */}
-            <div style={{width:"100%",maxWidth:"700px",background:"#0e0e1a",borderRadius:"12px",padding:"20px 16px 16px",boxShadow:"0 8px 32px rgba(0,0,0,0.5)",minHeight:"120px",border:`1px solid ${accentColor}80`}}>
+            <div style={{alignSelf:"stretch",background:"#0e0e1a",borderRadius:"12px",padding:"16px",boxShadow:"0 8px 32px rgba(0,0,0,0.5)",minHeight:"120px",border:`1px solid ${accentColor}80`}}>
               <p style={{fontSize:"15px",lineHeight:1.8,color:"#d0d0e8",margin:"0 0 20px"}}>{flipped?card.answer:card.question}</p>
               {flipped&&(<>
                 <div style={{borderTop:`1px solid ${accentColor}30`,paddingTop:"16px",marginBottom:"16px"}}>
@@ -391,7 +391,7 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
 
             {/* Answer input */}
             {!flipped&&(
-              <div style={{width:"100%",maxWidth:"700px",display:"flex",flexDirection:"column",gap:"10px"}}>
+              <div style={{alignSelf:"stretch",display:"flex",flexDirection:"column",gap:"10px"}}>
                 <textarea value={userAnswer} onChange={e=>setUserAnswer(e.target.value)} placeholder="Type your answer, then grade with AI or reveal…" style={{background:"#0e0e1a",border:"1px solid #2a2a3a",color:"#d0d0e8",borderRadius:"8px",padding:"14px",fontSize:"14px",fontFamily:"inherit",resize:"vertical",minHeight:"90px",outline:"none",lineHeight:1.6,width:"100%",boxSizing:"border-box"}}/>
                 <div style={{display:"flex",gap:"10px",justifyContent:"space-between"}}>
                   <button onClick={next} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"10px 20px",borderRadius:"8px",cursor:"pointer",fontSize:"13px"}}>Skip →</button>
@@ -430,7 +430,7 @@ try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
 
       {/* STATS */}
       {view==="stats"&&(
-        <div style={{flex:1,padding:"32px 24px",maxWidth:"740px",margin:"0 auto",width:"100%"}}>
+        <div style={{flex:1,padding:"20px 12px",maxWidth:"100%",margin:"0 auto",width:"100%"}}>
           <h2 style={{color:"#c8c8e0",fontWeight:400,marginBottom:"28px",fontSize:"20px"}}>Your Performance</h2>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"14px",marginBottom:"32px"}}>
             {[["Total Cards",ALL_CARDS.length,"#a0a0d0"],["Correct",totalCorrect,"#06d6a0"],["Incorrect",totalIncorrect,"#e94560"]].map(([l,v,c])=>(
