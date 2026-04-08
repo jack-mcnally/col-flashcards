@@ -159,6 +159,7 @@ const TYPE_COLORS  = {"Dicey Illustration":"#94a3b8","Case":"#fbbf24","Principle
 const STORAGE_SCORES_KEY = "col-scores-v1";
 const STORAGE_GIST_KEY = "col-gist-v1";
 const GIST_FILENAME = "col-flashcards-data.json";
+const GIST_TOKEN = import.meta.env.VITE_GIST_TOKEN||"";
 
 async function gistLoad(token){
   try{
@@ -232,7 +233,6 @@ export default function App(){
   const [flags,setFlags]=useState([]);
   const [hidden,setHidden]=useState([]);
   const [edits,setEdits]=useState({});
-  const [githubToken,setGithubToken]=useState("");
   const [gistId,setGistId]=useState(null);
   const [syncing,setSyncing]=useState(false);
   const [editingCard,setEditingCard]=useState(null);
@@ -260,24 +260,20 @@ export default function App(){
     let storedFlags=[];
     let storedHidden=[];
     let storedEdits={};
-    let storedToken="";
     let storedGistId=null;
     try{const r=localStorage.getItem(STORAGE_SCORES_KEY);if(r)storedScores=JSON.parse(r);}catch(e){}
-    try{const r=localStorage.getItem(STORAGE_GIST_KEY);if(r){const g=JSON.parse(r);storedToken=g.token||"";storedGistId=g.gistId||null;}}catch(e){}
+    try{const r=localStorage.getItem(STORAGE_GIST_KEY);if(r){const g=JSON.parse(r);storedGistId=g.gistId||null;}}catch(e){}
     setScores(storedScores);
-    setGithubToken(storedToken);
     setGistId(storedGistId);
-    if(storedToken){
-      const g=await gistLoad(storedToken);
-      if(g){
-        storedFlags=g.flags||[];
-        storedHidden=g.hidden||[];
-        storedEdits=g.edits||{};
-        if(g.scores)storedScores={...storedScores,...g.scores};
-        setScores(storedScores);
-        setGistId(g.id);
-        try{localStorage.setItem(STORAGE_GIST_KEY,JSON.stringify({token:storedToken,gistId:g.id}));}catch(e){}
-      }
+    const g=await gistLoad(GIST_TOKEN);
+    if(g){
+      storedFlags=g.flags||[];
+      storedHidden=g.hidden||[];
+      storedEdits=g.edits||{};
+      if(g.scores)storedScores={...storedScores,...g.scores};
+      setScores(storedScores);
+      setGistId(g.id);
+      try{localStorage.setItem(STORAGE_GIST_KEY,JSON.stringify({gistId:g.id}));}catch(e){}
     }
     setFlags(storedFlags);
     setHidden(storedHidden);
@@ -287,24 +283,17 @@ export default function App(){
 
   useEffect(()=>{loadFromStorage();},[]);
 
-  const syncToGist=useCallback(async(newScores,newFlags,newHidden,newEdits,token,id)=>{
-    if(!token)return;
+  const syncToGist=useCallback(async(newScores,newFlags,newHidden,newEdits,id)=>{
     setSyncing(true);
-    const newId=await gistSave(token,id,{scores:newScores,flags:newFlags,hidden:newHidden,edits:newEdits});
-    if(newId&&newId!==id){setGistId(newId);try{localStorage.setItem(STORAGE_GIST_KEY,JSON.stringify({token,gistId:newId}));}catch(e){}}
+    const newId=await gistSave(GIST_TOKEN,id,{scores:newScores,flags:newFlags,hidden:newHidden,edits:newEdits});
+    if(newId&&newId!==id){setGistId(newId);try{localStorage.setItem(STORAGE_GIST_KEY,JSON.stringify({gistId:newId}));}catch(e){}}
     setSyncing(false);
   },[]);
-
-  // Auto-save token to localStorage whenever it changes
-  useEffect(()=>{
-    if(!loaded)return;
-    try{localStorage.setItem(STORAGE_GIST_KEY,JSON.stringify({token:githubToken,gistId}));}catch(e){}
-  },[githubToken,gistId,loaded]);
 
   useEffect(()=>{
     if(!loaded)return;
     try{localStorage.setItem(STORAGE_SCORES_KEY,JSON.stringify(scores));}catch(e){}
-    syncToGist(scores,flags,hidden,edits,githubToken,gistId);
+    syncToGist(scores,flags,hidden,edits,gistId);
   },[scores,flags,hidden,edits,loaded]);
 
   useEffect(()=>{
@@ -630,13 +619,12 @@ export default function App(){
 
           {/* GitHub Gist Sync */}
           <div style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"14px"}}>
-            <div style={{fontSize:"11px",letterSpacing:"2px",color:"#444",textTransform:"uppercase",marginBottom:"10px"}}>GitHub Sync {githubToken&&<span style={{color:"#06d6a0",letterSpacing:"normal",textTransform:"none",fontSize:"10px",marginLeft:"6px"}}>● connected</span>}</div>
-            <input value={githubToken} onChange={e=>setGithubToken(e.target.value)} placeholder="Paste GitHub Personal Access Token…" type="password" style={{width:"100%",background:"#080810",border:"1px solid #2a2a3a",color:"#d0d0e8",borderRadius:"6px",padding:"10px",fontSize:"13px",fontFamily:"inherit",outline:"none",marginBottom:"8px"}}/>
-            <div style={{display:"flex",gap:"8px"}}>
-              <button onClick={async()=>syncToGist(scores,flags,hidden,edits,githubToken,gistId)} style={{background:"#a78bfa20",border:"1px solid #a78bfa40",color:"#a78bfa",padding:"8px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"12px",flex:1}}>Force Sync Now</button>
-              <button onClick={()=>{setGithubToken("");setGistId(null);try{localStorage.removeItem(STORAGE_GIST_KEY);}catch(e){}}} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#555",padding:"8px 12px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}}>Disconnect</button>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+              <div style={{fontSize:"11px",letterSpacing:"2px",color:"#444",textTransform:"uppercase"}}>GitHub Sync</div>
+              <span style={{color:syncing?"#a78bfa":"#06d6a0",fontSize:"10px"}}>{syncing?"syncing…":"● live"}</span>
             </div>
-            <p style={{fontSize:"11px",color:"#444",marginTop:"8px",lineHeight:1.5}}>Token is saved automatically once pasted. Syncs happen automatically on every score, flag, or edit. Create a token at github.com/settings/tokens with <em>gist</em> scope only.</p>
+            <p style={{fontSize:"11px",color:"#444",lineHeight:1.5,margin:0}}>Scores, flags, hidden cards, and edits sync automatically to a private GitHub Gist on every change.</p>
+            <button onClick={()=>syncToGist(scores,flags,hidden,edits,gistId)} style={{marginTop:"10px",background:"#a78bfa20",border:"1px solid #a78bfa40",color:"#a78bfa",padding:"8px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"12px",width:"100%"}}>Force Sync Now</button>
           </div>
 
           {/* Flagged */}
