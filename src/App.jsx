@@ -252,6 +252,8 @@ export default function App(){
   const [sessionCorrect,setSessionCorrect]=useState(0);
   const [sessionTotal,setSessionTotal]=useState(0);
   const [showPendingCopyModal,setShowPendingCopyModal]=useState(false);
+  const [jumpToId,setJumpToId]=useState("");
+  const [searchQuery,setSearchQuery]=useState("");
 
   const loadFromStorage=useCallback(async()=>{
     let storedScores={};
@@ -315,7 +317,8 @@ export default function App(){
     });
     setDeck(shuffle(filtered));
     setIdx(0);setFlipped(false);setUserAnswer("");setGradingResult(null);
-  },[filterTopic,filterType,filterFlag,studyMode,hidden,flags,loaded]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[filterTopic,filterType,filterFlag,studyMode,loaded]);
 
   const getScore=useCallback((id)=>scores[id]||{correct:0,incorrect:0},[scores]);
   const rawCard=deck[Math.min(idx,deck.length-1)]||null;
@@ -344,7 +347,13 @@ export default function App(){
 
   const handleSelfMark=(correct)=>{updateScore(card.id,correct);next();};
   const toggleFlag=(id)=>setFlags(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id]);
-  const hideCard=(id)=>setHidden(h=>[...h,id]);
+  const toggleHide=(id)=>{
+    setHidden(h=>{
+      if(h.includes(id))return h.filter(x=>x!==id);
+      setDeck(d=>d.filter(c=>c.id!==id));
+      return [...h,id];
+    });
+  };
   const saveEdit=(id,q,a)=>{setEdits(e=>({...e,[id]:{question:q,answer:a}}));setEditingCard(null);};
 
   const totalCorrect=Object.values(scores).reduce((s,sc)=>s+sc.correct,0);
@@ -439,7 +448,10 @@ export default function App(){
             <div style={{alignSelf:"stretch",background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px",flexWrap:"wrap"}}>
               <div style={{display:"flex",flexDirection:"column",alignItems:"center",minWidth:"48px"}}>
                 <span style={{fontSize:"18px",color:"#c8c8e0",lineHeight:1}}>{Math.min(idx,deck.length-1)+1}<span style={{fontSize:"13px",color:"#444"}}>/{deck.length}</span></span>
-                <span style={{fontSize:"9px",color:"#333",letterSpacing:"2px",textTransform:"uppercase",marginTop:"2px"}}>card</span>
+                <div style={{display:"flex",gap:"4px",alignItems:"center",marginTop:"2px"}}>
+                  <span style={{fontSize:"9px",color:"#333",letterSpacing:"2px",textTransform:"uppercase"}}>card</span>
+                  {flags.includes(rawCard.id)&&<svg width="9" height="9" viewBox="0 0 24 24" fill="#f5a623" stroke="#f5a623" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>}
+                </div>
               </div>
               <div style={{display:"flex",gap:"6px",flexWrap:"wrap",flex:1,justifyContent:"center"}}>
                 {getTopics(card).map(t=><Tag key={t} label={t} color={TOPIC_COLORS[t]||"#a78bfa"}/>)}
@@ -501,7 +513,7 @@ export default function App(){
                     <button onClick={()=>setEditingCard(rawCard)} title="Edit" style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"8px 10px",borderRadius:"8px",cursor:"pointer",flexShrink:0}}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
-                    <button onClick={()=>hideCard(rawCard.id)} title="Hide" style={{background:hidden.includes(rawCard.id)?"#44444420":"transparent",border:`1px solid ${hidden.includes(rawCard.id)?"#44444450":"#1e1e2e"}`,color:hidden.includes(rawCard.id)?"#888":"#444",padding:"8px 10px",borderRadius:"8px",cursor:"pointer",flexShrink:0}}>
+                    <button onClick={()=>toggleHide(rawCard.id)} title="Hide" style={{background:hidden.includes(rawCard.id)?"#88888820":"transparent",border:`1px solid ${hidden.includes(rawCard.id)?"#88888850":"#1e1e2e"}`,color:hidden.includes(rawCard.id)?"#aaa":"#444",padding:"8px 10px",borderRadius:"8px",cursor:"pointer",flexShrink:0}}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                     </button>
                     <span style={{marginLeft:"auto",fontSize:"11px",color:"#333",letterSpacing:"1px"}}>Card {rawCard.id}</span>
@@ -573,6 +585,49 @@ export default function App(){
         const flaggedCards=flags.map(id=>ALL_CARDS.find(c=>c.id===id)).filter(Boolean);
         return(
         <div style={{flex:1,padding:"14px 12px",width:"100%",display:"flex",flexDirection:"column",gap:"14px",overflowY:"auto"}}>
+          {/* Jump to Card */}
+          <div style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"14px"}}>
+            <div style={{fontSize:"11px",letterSpacing:"2px",color:"#444",textTransform:"uppercase",marginBottom:"10px"}}>Jump to Card</div>
+            <div style={{display:"flex",gap:"8px"}}>
+              <input value={jumpToId} onChange={e=>setJumpToId(e.target.value)} placeholder="Card ID (e.g. 42)" type="number" min="1" style={{flex:1,background:"#080810",border:"1px solid #2a2a3a",color:"#d0d0e8",borderRadius:"6px",padding:"8px 10px",fontSize:"13px",fontFamily:"inherit",outline:"none"}}/>
+              <button onClick={()=>{
+                const id=parseInt(jumpToId);
+                if(!id)return;
+                const found=deck.findIndex(c=>c.id===id);
+                if(found>=0){setIdx(found);setFlipped(false);setView("study");}
+                else{const inAll=ALL_CARDS.find(c=>c.id===id);if(inAll){setJumpToId("");alert(`Card ${id} is not in the current deck (may be filtered or hidden).`);}}
+              }} style={{background:"#a78bfa20",border:"1px solid #a78bfa40",color:"#a78bfa",padding:"8px 16px",borderRadius:"6px",cursor:"pointer",fontSize:"12px"}}>Go</button>
+            </div>
+          </div>
+
+          {/* Search Cards */}
+          <div style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"14px"}}>
+            <div style={{fontSize:"11px",letterSpacing:"2px",color:"#444",textTransform:"uppercase",marginBottom:"10px"}}>Search Cards</div>
+            <input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Search questions and answers…" style={{width:"100%",background:"#080810",border:"1px solid #2a2a3a",color:"#d0d0e8",borderRadius:"6px",padding:"8px 10px",fontSize:"13px",fontFamily:"inherit",outline:"none"}}/>
+            {searchQuery.trim()&&(
+              <div style={{display:"flex",flexDirection:"column",gap:"6px",marginTop:"10px",maxHeight:"240px",overflowY:"auto"}}>
+                {ALL_CARDS.filter(c=>{
+                  const q=searchQuery.toLowerCase();
+                  return c.question.toLowerCase().includes(q)||c.answer.toLowerCase().includes(q)||(c.keyPrinciple||"").toLowerCase().includes(q);
+                }).slice(0,30).map(c=>{
+                  const inDeck=deck.findIndex(d=>d.id===c.id);
+                  return(
+                    <div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:"8px",padding:"6px 0",borderBottom:"1px solid #1a1a28"}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <span style={{fontSize:"10px",color:"#555",letterSpacing:"1px"}}>Card {c.id}</span>
+                        <p style={{fontSize:"12px",color:"#888",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",margin:"2px 0 0"}}>{c.question.slice(0,70)}{c.question.length>70?"…":""}</p>
+                      </div>
+                      <button onClick={()=>{
+                        if(inDeck>=0){setIdx(inDeck);setFlipped(false);setView("study");}
+                        else{alert(`Card ${c.id} is not in the current deck.`);}
+                      }} style={{background:"transparent",border:"1px solid #2a2a3a",color:inDeck>=0?"#a0a0d0":"#444",padding:"4px 10px",borderRadius:"4px",cursor:"pointer",fontSize:"11px",flexShrink:0}}>{inDeck>=0?"Go":"—"}</button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           {/* GitHub Gist Sync */}
           <div style={{background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"14px"}}>
             <div style={{fontSize:"11px",letterSpacing:"2px",color:"#444",textTransform:"uppercase",marginBottom:"10px"}}>GitHub Sync</div>
