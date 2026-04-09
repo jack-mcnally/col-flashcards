@@ -475,23 +475,26 @@ export default function App(){
               </div>
             </div>
 
-            {/* Card — the ONLY scrolling element */}
-            <div style={{flex:1,minHeight:0,overflowY:"auto",borderRadius:"12px",boxShadow:"0 8px 32px rgba(0,0,0,0.5)",border:`1px solid ${accentColor}80`,background:"#0e0e1a",padding:"16px",paddingBottom:flipped?"146px":"82px"}}>
-              <p style={{fontSize:"15px",lineHeight:1.8,color:"#d0d0e8",margin:"0 0 20px"}}>{flipped?card.answer:card.question}</p>
-              {flipped&&(<>
-                <div style={{borderTop:`1px solid ${accentColor}30`,paddingTop:"16px",marginBottom:"16px"}}>
-                  <span style={{color:accentColor,fontSize:"10px",letterSpacing:"3px",textTransform:"uppercase"}}>Key Principle</span>
-                  <p style={{color:"#9090b0",fontSize:"13px",fontStyle:"italic",lineHeight:1.7,margin:"8px 0 0"}}>{card.keyPrinciple}</p>
-                </div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid #1a1a28",paddingTop:"12px"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
-                    <RobotIcon filled={isAiScenario(card)} color={accentColor}/>
-                    {flags.includes(rawCard.id)&&<svg width="14" height="14" viewBox="0 0 24 24" fill="#f5a623" stroke="#f5a623" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>}
-                    {card.subtopic&&<span style={{fontSize:"10px",color:"#444",letterSpacing:"1px",textTransform:"uppercase"}}>{card.subtopic}</span>}
+            {/* Scroll wrapper — flex:1 takes remaining space, clips + scrolls if needed */}
+            <div style={{flex:1,minHeight:0,overflowY:"auto",paddingBottom:flipped?"146px":"82px"}}>
+              {/* Card — only as tall as its content */}
+              <div style={{borderRadius:"12px",boxShadow:"0 8px 32px rgba(0,0,0,0.5)",border:`1px solid ${accentColor}80`,background:"#0e0e1a",padding:"16px"}}>
+                <p style={{fontSize:"15px",lineHeight:1.8,color:"#d0d0e8",margin:"0 0 20px"}}>{flipped?card.answer:card.question}</p>
+                {flipped&&(<>
+                  <div style={{borderTop:`1px solid ${accentColor}30`,paddingTop:"16px",marginBottom:"16px"}}>
+                    <span style={{color:accentColor,fontSize:"10px",letterSpacing:"3px",textTransform:"uppercase"}}>Key Principle</span>
+                    <p style={{color:"#9090b0",fontSize:"13px",fontStyle:"italic",lineHeight:1.7,margin:"8px 0 0"}}>{card.keyPrinciple}</p>
                   </div>
-                  {card.reference&&<span style={{fontSize:"11px",color:"#555",fontStyle:"italic"}}>{card.reference}</span>}
-                </div>
-              </>)}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid #1a1a28",paddingTop:"12px"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                      <RobotIcon filled={isAiScenario(card)} color={accentColor}/>
+                      {flags.includes(rawCard.id)&&<svg width="14" height="14" viewBox="0 0 24 24" fill="#f5a623" stroke="#f5a623" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>}
+                      {card.subtopic&&<span style={{fontSize:"10px",color:"#444",letterSpacing:"1px",textTransform:"uppercase"}}>{card.subtopic}</span>}
+                    </div>
+                    {card.reference&&<span style={{fontSize:"11px",color:"#555",fontStyle:"italic"}}>{card.reference}</span>}
+                  </div>
+                </>)}
+              </div>
             </div>
             <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#0a0a14",borderTop:"1px solid #1a1a2e",zIndex:100}}>
               {flipped&&(
