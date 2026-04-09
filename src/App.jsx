@@ -192,6 +192,7 @@ async function gistSave(token,gistId,payload){
 // SECTION 3: COMPONENTS + APP
 // ============================================================
 function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function weightedShuffle(arr,weightFn){return [...arr].map(item=>({item,key:Math.random()**(1/Math.max(weightFn(item),0.001))})).sort((a,b)=>b.key-a.key).map(({item})=>item);}
 function getTopics(c){return c.tags.filter(t=>t.startsWith("topic:")).map(t=>t.slice(6));}
 function getTypes(c){return c.tags.filter(t=>t.startsWith("type:")).map(t=>t.slice(5));}
 function isAiScenario(c){return (c.flags||[]).includes("ai-scenario");}
@@ -299,19 +300,29 @@ export default function App(){
 
   useEffect(()=>{
     if(!loaded)return;
-    const filtered=ALL_CARDS.filter(c=>{
+    const baseFilter=c=>{
       if(hidden.includes(c.id))return false;
       if(filterTopics.length>0&&!filterTopics.some(t=>getTopics(c).includes(t)))return false;
       if(filterTypes.length>0&&!filterTypes.some(t=>getTypes(c).includes(t)))return false;
       if(filterFlag==="exclude-ai"&&isAiScenario(c))return false;
       if(filterFlag==="ai-only"&&!isAiScenario(c))return false;
-      if(studyMode==="flagged")return flags.includes(c.id);
-      const sc=scores[c.id]||{correct:0,incorrect:0};
-      if(studyMode==="weak")return sc.incorrect>sc.correct;
-      if(studyMode==="unseen")return sc.correct===0&&sc.incorrect===0;
       return true;
-    });
-    setDeck(shuffle(filtered));
+    };
+    if(studyMode==="flagged"){
+      setDeck(shuffle(ALL_CARDS.filter(c=>baseFilter(c)&&flags.includes(c.id))));
+    }else if(studyMode==="weak"){
+      const weak=ALL_CARDS.filter(c=>{
+        if(!baseFilter(c))return false;
+        const sc=scores[c.id]||{correct:0,incorrect:0};
+        return sc.incorrect>0;
+      });
+      setDeck(weightedShuffle(weak,c=>{const sc=scores[c.id]||{correct:0,incorrect:0};const t=sc.correct+sc.incorrect;return t>0?sc.incorrect/t:0.5;}));
+    }else if(studyMode==="unseen"){
+      const all=ALL_CARDS.filter(baseFilter);
+      setDeck(weightedShuffle(all,c=>{const sc=scores[c.id]||{correct:0,incorrect:0,seen:0};return 1/((sc.seen||0)+1);}));
+    }else{
+      setDeck(shuffle(ALL_CARDS.filter(baseFilter)));
+    }
     setIdx(0);setFlipped(false);setUserAnswer("");setGradingResult(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[filterTopics,filterTypes,filterFlag,studyMode,loaded]);
@@ -342,6 +353,7 @@ export default function App(){
   };
 
   const handleSelfMark=(correct)=>{updateScore(card.id,correct);next();};
+  const markSeen=(id)=>setScores(prev=>{const cur=prev[id]||{correct:0,incorrect:0,seen:0};return{...prev,[id]:{...cur,seen:(cur.seen||0)+1}};});
   const toggleFlag=(id)=>setFlags(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id]);
   const toggleHide=(id)=>setHidden(h=>h.includes(id)?h.filter(x=>x!==id):[...h,id]);
   const saveEdit=(id,q,a)=>{setEdits(e=>({...e,[id]:{question:q,answer:a}}));setEditingCard(null);};
@@ -522,7 +534,7 @@ export default function App(){
                 ):(
                   <>
                     <button onClick={next} style={{background:"transparent",border:"1px solid #1e1e2e",color:"#444",padding:"12px 16px",borderRadius:"8px",cursor:"pointer",fontSize:"13px",flexShrink:0}}>Skip →</button>
-                    <button onClick={()=>setFlipped(true)} style={{background:accentColor,border:"none",color:"#000",padding:"12px 0",borderRadius:"8px",cursor:"pointer",fontSize:"13px",fontWeight:"bold",flex:1}}>Reveal Answer</button>
+                    <button onClick={()=>{setFlipped(true);markSeen(rawCard.id);}} style={{background:accentColor,border:"none",color:"#000",padding:"12px 0",borderRadius:"8px",cursor:"pointer",fontSize:"13px",fontWeight:"bold",flex:1}}>Reveal Answer</button>
                   </>
                 )}
               </div>
