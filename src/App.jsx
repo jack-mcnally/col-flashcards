@@ -365,12 +365,18 @@ export default function App(){
   );
 
   return(
-    <div style={{minHeight:"100vh",background:"#080810",fontFamily:"'Palatino Linotype',Palatino,serif",color:"#e8e8f0",display:"flex",flexDirection:"column"}}>
+    <div style={{height:"100dvh",background:"#080810",fontFamily:"'Palatino Linotype',Palatino,serif",color:"#e8e8f0",display:"flex",flexDirection:"column",overflow:"hidden"}}>
       {/* Nav */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 12px",borderBottom:"1px solid #1a1a2e",background:"#0a0a14"}}>
-        <div>
-          <div style={{fontSize:"10px",letterSpacing:"4px",color:"#444",textTransform:"uppercase"}}>BCL Flashcards</div>
-          <div style={{fontSize:"18px",color:"#c8c8e0"}}>Conflict of Laws</div>
+      <div style={{flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 12px",borderBottom:"1px solid #1a1a2e",background:"#0a0a14"}}>
+        <div style={{display:"flex",alignItems:"center",gap:"10px"}}>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="28" height="28" style={{flexShrink:0}}>
+            <rect width="32" height="32" rx="6" fill="#13131f"/>
+            <text x="16" y="23" textAnchor="middle" fontSize="20" fontFamily="serif" fill="#a78bfa">C</text>
+          </svg>
+          <div>
+            <div style={{fontSize:"10px",letterSpacing:"4px",color:"#444",textTransform:"uppercase"}}>BCL Flashcards</div>
+            <div style={{fontSize:"18px",color:"#c8c8e0"}}>Conflict of Laws</div>
+          </div>
         </div>
         <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
           {syncing&&<span style={{fontSize:"10px",color:"#444"}}>syncing…</span>}
@@ -391,51 +397,56 @@ export default function App(){
 
       {/* STUDY */}
       {view==="study"&&(
-        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"10px 12px",gap:"10px"}}>
-          <button onClick={()=>setShowFilters(!showFilters)} style={{alignSelf:"stretch",background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"8px",padding:"10px 16px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",color:"#666",fontSize:"12px",letterSpacing:"2px",textTransform:"uppercase"}}>
-            <span>Filters {filterTopic!=="All"||filterType!=="All"||filterFlag!=="all"||studyMode!=="all"?"(active)":""}</span>
-            <span style={{fontSize:"14px"}}>{showFilters?"▲":"▼"}</span>
-          </button>
-          {showFilters&&<>
-          <div style={{alignSelf:"stretch"}}>
-            <div style={{fontSize:"10px",letterSpacing:"3px",color:"#333",textTransform:"uppercase",marginBottom:"7px"}}>Topic</div>
-            <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
-              <button onClick={()=>setFilterTopic("All")} style={fb(filterTopic==="All","#888")}>All</button>
-              {TOPICS.map(t=><button key={t} onClick={()=>setFilterTopic(t)} style={fb(filterTopic===t,TOPIC_COLORS[t])}>{t}</button>)}
-            </div>
+        <div style={{flex:1,minHeight:0,display:"flex",flexDirection:"column",padding:"10px 12px 0",gap:"10px",overflow:"hidden"}}>
+          {/* Filters — locked, never scrolls */}
+          <div style={{flexShrink:0}}>
+            <button onClick={()=>setShowFilters(!showFilters)} style={{width:"100%",background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"8px",padding:"10px 16px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",color:"#666",fontSize:"12px",letterSpacing:"2px",textTransform:"uppercase"}}>
+              <span>Filters {filterTopic!=="All"||filterType!=="All"||filterFlag!=="all"||studyMode!=="all"?"(active)":""}</span>
+              <span style={{fontSize:"14px"}}>{showFilters?"▲":"▼"}</span>
+            </button>
+            {showFilters&&(
+              <div style={{marginTop:"10px",display:"flex",flexDirection:"column",gap:"10px",maxHeight:"38vh",overflowY:"auto"}}>
+                <div>
+                  <div style={{fontSize:"10px",letterSpacing:"3px",color:"#333",textTransform:"uppercase",marginBottom:"7px"}}>Topic</div>
+                  <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
+                    <button onClick={()=>setFilterTopic("All")} style={fb(filterTopic==="All","#888")}>All</button>
+                    {TOPICS.map(t=><button key={t} onClick={()=>setFilterTopic(t)} style={fb(filterTopic===t,TOPIC_COLORS[t])}>{t}</button>)}
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:"10px",flexWrap:"wrap",alignItems:"flex-start"}}>
+                  <div style={{flex:1,minWidth:"150px"}}>
+                    <div style={{fontSize:"10px",letterSpacing:"3px",color:"#333",textTransform:"uppercase",marginBottom:"7px"}}>Type</div>
+                    <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
+                      <button onClick={()=>setFilterType("All")} style={fb(filterType==="All","#888")}>All</button>
+                      {TYPES.map(t=><button key={t} onClick={()=>setFilterType(t)} style={fb(filterType===t,TYPE_COLORS[t])}>{t}</button>)}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{fontSize:"10px",letterSpacing:"3px",color:"#333",textTransform:"uppercase",marginBottom:"7px"}}>AI Scenarios</div>
+                    <div style={{display:"flex",gap:"5px"}}>
+                      {[["all","Include"],["exclude-ai","Exclude"],["ai-only","Only"]].map(([m,l])=>(
+                        <button key={m} onClick={()=>setFilterFlag(m)} style={mb(filterFlag===m)}>{l}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{fontSize:"10px",letterSpacing:"3px",color:"#333",textTransform:"uppercase",marginBottom:"7px"}}>Mode</div>
+                    <div style={{display:"flex",gap:"5px"}}>
+                      {[["all","All"],["weak","Weak"],["unseen","Unseen"],["flagged","Flagged"]].map(([m,l])=>(
+                        <button key={m} onClick={()=>setStudyMode(m)} style={mb(studyMode===m)}>{l}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          <div style={{alignSelf:"stretch",display:"flex",gap:"10px",flexWrap:"wrap",alignItems:"flex-start"}}>
-            <div style={{flex:1,minWidth:"150px"}}>
-              <div style={{fontSize:"10px",letterSpacing:"3px",color:"#333",textTransform:"uppercase",marginBottom:"7px"}}>Type</div>
-              <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
-                <button onClick={()=>setFilterType("All")} style={fb(filterType==="All","#888")}>All</button>
-                {TYPES.map(t=><button key={t} onClick={()=>setFilterType(t)} style={fb(filterType===t,TYPE_COLORS[t])}>{t}</button>)}
-              </div>
-            </div>
-            <div>
-              <div style={{fontSize:"10px",letterSpacing:"3px",color:"#333",textTransform:"uppercase",marginBottom:"7px"}}>AI Scenarios</div>
-              <div style={{display:"flex",gap:"5px"}}>
-                {[["all","Include"],["exclude-ai","Exclude"],["ai-only","Only"]].map(([m,l])=>(
-                  <button key={m} onClick={()=>setFilterFlag(m)} style={mb(filterFlag===m)}>{l}</button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <div style={{fontSize:"10px",letterSpacing:"3px",color:"#333",textTransform:"uppercase",marginBottom:"7px"}}>Mode</div>
-              <div style={{display:"flex",gap:"5px"}}>
-                {[["all","All"],["weak","Weak"],["unseen","Unseen"],["flagged","Flagged"]].map(([m,l])=>(
-                  <button key={m} onClick={()=>setStudyMode(m)} style={mb(studyMode===m)}>{l}</button>
-                ))}
-              </div>
-            </div>
-          </div>
-          </>}
 
           {deck.length===0?(
             <div style={{color:"#444",fontSize:"14px",marginTop:"60px"}}>No cards match this filter.</div>
           ):card&&(<>
-            {/* Progress panel */}
-            <div style={{alignSelf:"stretch",background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px",flexWrap:"wrap"}}>
+            {/* Progress panel — locked */}
+            <div style={{flexShrink:0,background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"10px",padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"12px",flexWrap:"wrap"}}>
               <div style={{display:"flex",flexDirection:"column",alignItems:"center",minWidth:"48px"}}>
                 <span style={{fontSize:"18px",color:"#c8c8e0",lineHeight:1}}>{Math.min(idx,deck.length-1)+1}<span style={{fontSize:"13px",color:"#444"}}>/{deck.length}</span></span>
                 <div style={{display:"flex",gap:"4px",alignItems:"center",marginTop:"2px"}}>
@@ -464,8 +475,8 @@ export default function App(){
               </div>
             </div>
 
-            {/* Card */}
-            <div style={{alignSelf:"stretch",background:"#0e0e1a",borderRadius:"12px",padding:"16px",boxShadow:"0 8px 32px rgba(0,0,0,0.5)",minHeight:"120px",border:`1px solid ${accentColor}80`}}>
+            {/* Card — the ONLY scrolling element */}
+            <div style={{flex:1,minHeight:0,overflowY:"auto",borderRadius:"12px",boxShadow:"0 8px 32px rgba(0,0,0,0.5)",border:`1px solid ${accentColor}80`,background:"#0e0e1a",padding:"16px",paddingBottom:flipped?"146px":"82px"}}>
               <p style={{fontSize:"15px",lineHeight:1.8,color:"#d0d0e8",margin:"0 0 20px"}}>{flipped?card.answer:card.question}</p>
               {flipped&&(<>
                 <div style={{borderTop:`1px solid ${accentColor}30`,paddingTop:"16px",marginBottom:"16px"}}>
@@ -482,10 +493,6 @@ export default function App(){
                 </div>
               </>)}
             </div>
-
-            {/* Reveal button */}
-            {/* Fixed bottom bar — always visible */}
-            <div style={{height:flipped?"130px":"70px"}}/>
             <div style={{position:"fixed",bottom:0,left:0,right:0,background:"#0a0a14",borderTop:"1px solid #1a1a2e",zIndex:100}}>
               {flipped&&(
                 <div style={{display:"flex",gap:"6px",padding:"8px 12px",alignItems:"center"}}>
