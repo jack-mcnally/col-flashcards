@@ -244,8 +244,8 @@ export default function App(){
   const [userAnswer,setUserAnswer]=useState("");
   const [grading,setGrading]=useState(false);
   const [gradingResult,setGradingResult]=useState(null);
-  const [filterTopic,setFilterTopic]=useState("All");
-  const [filterType,setFilterType]=useState("All");
+  const [filterTopics,setFilterTopics]=useState([]);
+  const [filterTypes,setFilterTypes]=useState([]);
   const [filterFlag,setFilterFlag]=useState("all");
   const [studyMode,setStudyMode]=useState("all");
   const [showFilters,setShowFilters]=useState(false);
@@ -301,8 +301,8 @@ export default function App(){
     if(!loaded)return;
     const filtered=ALL_CARDS.filter(c=>{
       if(hidden.includes(c.id))return false;
-      if(filterTopic!=="All"&&!getTopics(c).includes(filterTopic))return false;
-      if(filterType!=="All"&&!getTypes(c).includes(filterType))return false;
+      if(filterTopics.length>0&&!filterTopics.some(t=>getTopics(c).includes(t)))return false;
+      if(filterTypes.length>0&&!filterTypes.some(t=>getTypes(c).includes(t)))return false;
       if(filterFlag==="exclude-ai"&&isAiScenario(c))return false;
       if(filterFlag==="ai-only"&&!isAiScenario(c))return false;
       if(studyMode==="flagged")return flags.includes(c.id);
@@ -314,7 +314,7 @@ export default function App(){
     setDeck(shuffle(filtered));
     setIdx(0);setFlipped(false);setUserAnswer("");setGradingResult(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[filterTopic,filterType,filterFlag,studyMode,loaded]);
+  },[filterTopics,filterTypes,filterFlag,studyMode,loaded]);
 
   const getScore=useCallback((id)=>scores[id]||{correct:0,incorrect:0},[scores]);
   const rawCard=deck[Math.min(idx,deck.length-1)]||null;
@@ -401,7 +401,7 @@ export default function App(){
           {/* Filters — locked, never scrolls */}
           <div style={{flexShrink:0}}>
             <button onClick={()=>setShowFilters(!showFilters)} style={{width:"100%",background:"#0e0e1a",border:"1px solid #1e1e2e",borderRadius:"8px",padding:"10px 16px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",color:"#666",fontSize:"12px",letterSpacing:"2px",textTransform:"uppercase"}}>
-              <span>Filters {filterTopic!=="All"||filterType!=="All"||filterFlag!=="all"||studyMode!=="all"?"(active)":""}</span>
+              <span>Filters {filterTopics.length>0||filterTypes.length>0||filterFlag!=="all"||studyMode!=="all"?"(active)":""}</span>
               <span style={{fontSize:"14px"}}>{showFilters?"▲":"▼"}</span>
             </button>
             {showFilters&&(
@@ -409,16 +409,16 @@ export default function App(){
                 <div>
                   <div style={{fontSize:"10px",letterSpacing:"3px",color:"#333",textTransform:"uppercase",marginBottom:"7px"}}>Topic</div>
                   <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
-                    <button onClick={()=>setFilterTopic("All")} style={fb(filterTopic==="All","#888")}>All</button>
-                    {TOPICS.map(t=><button key={t} onClick={()=>setFilterTopic(t)} style={fb(filterTopic===t,TOPIC_COLORS[t])}>{t}</button>)}
+                    <button onClick={()=>setFilterTopics([])} style={fb(filterTopics.length===0,"#888")}>All</button>
+                    {TOPICS.map(t=><button key={t} onClick={()=>setFilterTopics(prev=>prev.includes(t)?prev.filter(x=>x!==t):[...prev,t])} style={fb(filterTopics.includes(t),TOPIC_COLORS[t])}>{t}</button>)}
                   </div>
                 </div>
                 <div style={{display:"flex",gap:"10px",flexWrap:"wrap",alignItems:"flex-start"}}>
                   <div style={{flex:1,minWidth:"150px"}}>
                     <div style={{fontSize:"10px",letterSpacing:"3px",color:"#333",textTransform:"uppercase",marginBottom:"7px"}}>Type</div>
                     <div style={{display:"flex",gap:"5px",flexWrap:"wrap"}}>
-                      <button onClick={()=>setFilterType("All")} style={fb(filterType==="All","#888")}>All</button>
-                      {TYPES.map(t=><button key={t} onClick={()=>setFilterType(t)} style={fb(filterType===t,TYPE_COLORS[t])}>{t}</button>)}
+                      <button onClick={()=>setFilterTypes([])} style={fb(filterTypes.length===0,"#888")}>All</button>
+                      {TYPES.map(t=><button key={t} onClick={()=>setFilterTypes(prev=>prev.includes(t)?prev.filter(x=>x!==t):[...prev,t])} style={fb(filterTypes.includes(t),TYPE_COLORS[t])}>{t}</button>)}
                     </div>
                   </div>
                   <div>
